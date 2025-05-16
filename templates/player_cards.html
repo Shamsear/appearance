@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Player Cards Review</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        .card-container {
+            margin-bottom: 20px;
+        }
+        .card-image {
+            width: 100%;
+            border: 1px solid #ddd;
+        }
+        .debug-image {
+            max-width: 100%;
+            height: auto;
+            margin-bottom: 20px;
+            border: 2px solid #28a745;
+        }
+        .image-pair {
+            display: flex;
+            margin-bottom: 15px;
+        }
+        .image-pair img {
+            margin-right: 10px;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+        }
+        .nav-tabs {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1>Player Cards Review</h1>
+        
+        <a href="{{ url_for('index') }}" class="btn btn-secondary mb-3">Back to Home</a>
+        
+        <ul class="nav nav-tabs" id="myTab" role="tablist">
+            <li class="nav-item">
+                <a class="nav-link active" id="cards-tab" data-toggle="tab" href="#cards" role="tab" 
+                   aria-controls="cards" aria-selected="true">Player Cards ({{ card_count }})</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="debug-tab" data-toggle="tab" href="#debug" role="tab" 
+                   aria-controls="debug" aria-selected="false">Debug Images ({{ debug_count }})</a>
+            </li>
+        </ul>
+        
+        <div class="tab-content" id="myTabContent">
+            <!-- Player Cards Tab -->
+            <div class="tab-pane fade show active" id="cards" role="tabpanel" aria-labelledby="cards-tab">
+                <div class="row">
+                    {% if card_count == 0 %}
+                        <div class="col-12">
+                            <div class="alert alert-warning">
+                                No player cards have been detected yet. Process a video first.
+                            </div>
+                        </div>
+                    {% endif %}
+                    
+                    {% for card in card_images %}
+                        <div class="col-md-6 col-lg-4 card-container">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="card-title mb-0">{{ card.name }}</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="image-pair">
+                                        <img src="{{ url_for('static', filename=card.path) }}" class="card-image" alt="Player Card">
+                                        {% if card.processed_path %}
+                                            <img src="{{ url_for('static', filename=card.processed_path) }}" class="card-image" alt="Processed Card">
+                                        {% endif %}
+                                    </div>
+                                    
+                                    {% if card.info %}
+                                        <div class="card-text">
+                                            <h6>OCR Results:</h6>
+                                            <pre>{{ card.info }}</pre>
+                                        </div>
+                                    {% else %}
+                                        <p class="text-muted">No player name detected</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <!-- Debug Images Tab -->
+            <div class="tab-pane fade" id="debug" role="tabpanel" aria-labelledby="debug-tab">
+                <div class="row">
+                    {% if debug_count == 0 %}
+                        <div class="col-12">
+                            <div class="alert alert-warning">
+                                No debug images available. Process a video first.
+                            </div>
+                        </div>
+                    {% endif %}
+                    
+                    {% for debug in debug_images %}
+                        <div class="col-12 mb-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="card-title mb-0">{{ debug.name }}</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="text-center">
+                                        <img src="{{ url_for('static', filename=debug.path) }}" class="debug-image" alt="Debug Image">
+                                    </div>
+                                    <div class="mt-2">
+                                        <p class="text-muted">
+                                            <strong>Green rectangles:</strong> Potential player cards detected by contour analysis<br>
+                                            <strong>Red rectangles:</strong> Cards where a player name was successfully extracted
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html> 

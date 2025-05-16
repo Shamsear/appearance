@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Batch Processing Results</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        body {
+            padding-top: 2rem;
+            background-color: #f5f5f5;
+        }
+        .results-container {
+            max-width: 1200px;
+            margin: 0 auto 2rem auto;
+            background-color: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            opacity: 0.3;
+            transition: opacity 0.3s ease-in-out;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .match-card {
+            margin-bottom: 2rem;
+            border: 1px solid #eee;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .match-header {
+            background-color: #f8f9fa;
+            padding: 1rem;
+            border-bottom: 1px solid #eee;
+        }
+        .team-section {
+            margin-bottom: 1rem;
+            padding: 1rem;
+            border: 1px solid #eee;
+            border-radius: 5px;
+        }
+        .player-found {
+            color: #198754;
+            font-weight: bold;
+        }
+        .player-not-found {
+            color: #dc3545;
+            font-weight: normal;
+        }
+        .team-logo {
+            font-size: 2rem;
+            text-align: center;
+            margin-bottom: 0.5rem;
+        }
+        .unmatched-section {
+            margin-top: 1rem;
+            padding: 1rem;
+            border: 1px solid #ffc107;
+            background-color: #fff8e1;
+            border-radius: 5px;
+        }
+        .unmatched-player {
+            padding: 0.5rem 1rem;
+            margin-bottom: 0.5rem;
+            background-color: white;
+            border-radius: 5px;
+            border: 1px solid #eee;
+            display: inline-block;
+            margin-right: 0.5rem;
+        }
+        .match-info {
+            background-color: #f8f9fa;
+            padding: 1rem;
+            border-radius: 5px;
+            margin-bottom: 1rem;
+            border: 1px solid #eee;
+        }
+        .actions {
+            margin-top: 2rem;
+            text-align: center;
+        }
+        .summary-card {
+            padding: 1rem;
+            border: 1px solid #6ea8fe;
+            background-color: #f0f7ff;
+            border-radius: 5px;
+            margin-bottom: 2rem;
+        }
+        .collapse-toggle {
+            cursor: pointer;
+        }
+        .table-sm td, .table-sm th {
+            padding: 0.3rem;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="results-container">
+            <div class="header">
+                <h1>Batch Processing Results</h1>
+                <p class="text-muted">Showing results for {{ batch_results|length }} completed videos</p>
+                
+                <!-- Add collapse/expand controls -->
+                <div class="btn-group mb-3">
+                    <button id="collapseAllBtn" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-arrows-collapse"></i> Collapse All
+                    </button>
+                    <button id="expandAllBtn" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-arrows-expand"></i> Expand All
+                    </button>
+                </div>
+                
+                {% with messages = get_flashed_messages() %}
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-info">{{ message }}</div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+            </div>
+            
+            <div class="summary-card">
+                <div class="row">
+                    <div class="col-md-8">
+                        <h4>Processing Summary</h4>
+                        <p>
+                            <strong>Completed videos:</strong> {{ queue_status.completed }}<br>
+                            <strong>Total videos in queue:</strong> {{ queue_status.total }} 
+                            ({{ queue_status.pending }} pending, {{ queue_status.processing }} processing, {{ queue_status.error }} errors)
+                        </p>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#saveToDatabaseModal">
+                            <i class="bi bi-database-add"></i> Save All to Database
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Debug section, will help identify any inconsistencies or mixed-up data -->
+                <div class="mt-3 border-top pt-2">
+                    <small class="text-muted">
+                        <strong>Debug Info:</strong> Showing {{ batch_results|length }} results from completed videos.<br>
+                        <button class="btn btn-sm btn-outline-secondary mt-1" type="button" data-bs-toggle="collapse" data-bs-target="#debugInfo">
+                            Show/Hide IDs
+                        </button>
+                        <div class="collapse mt-2" id="debugInfo">
+                            <div class="card card-body">
+                                <h6>Video IDs and Teams:</h6>
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Video ID</th>
+                                            <th>Filename</th>
+                                            <th>Teams</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for result in batch_results %}
+                                            <tr>
+                                                <td>{{ loop.index }}</td>
+                                                <td><code>{{ result.video.id }}</code></td>
+                                                <td>{{ result.video.filename }}</td>
+                                                <td>{{ result.home_team|default('Unknown') }} vs {{ result.away_team|default('Unknown') }}</td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </small>
+                </div>
+            </div>
+            
+            <!-- Results for Each Match -->
+            {% for result in batch_results %}
+                <div class="match-card">
+                    <div class="match-header">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h4>
+                                {{ result.home_team|default('Unknown Team') }} vs {{ result.away_team|default('Unknown Team') }}
+                                <span class="badge bg-secondary ms-2">{{ result.match_day|default('No Match Day') }}</span>
+                            </h4>
+                            <div>
+                                <button class="btn btn-sm btn-outline-primary ms-2 collapse-toggle" 
+                                       data-bs-toggle="collapse" data-bs-target="#match-{{ loop.index }}">
+                                    <i class="bi bi-chevron-down"></i> Toggle Details
+                                </button>
+                                <a href="{{ url_for('batch_results', video_id=result.video.id) }}" class="btn btn-sm btn-outline-secondary ms-2">
+                                    <i class="bi bi-box-arrow-up-right"></i> View Separately
+                                </a>
+                            </div>
+                        </div>
+                        <small class="text-muted">
+                            File: {{ result.video.filename|default('Unknown') }} | 
+                            Processed: {{ result.video.processed_at|default('Unknown') }}
+                        </small>
+                    </div>
+                    
+                    <div class="collapse show" id="match-{{ loop.index }}">
+                        <div class="card-body p-3">
+                            <div class="row">
+                                <!-- Home Team -->
+                                <div class="col-md-6">
+                                    <div class="team-section">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <div class="team-logo">
+                                                <i class="bi bi-house-door"></i>
+                                            </div>
+                                            <h5>{{ result.home_team|default('Unknown Team') }}</h5>
+                                        </div>
+                                        
+                                        {% if result.home_data and result.home_data|length > 0 %}
+                                            <table class="table table-sm">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Player</th>
+                                                        <th class="text-center">Found</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for player, found in result.home_data.items() %}
+                                                        <tr>
+                                                            <td>{{ player }}</td>
+                                                            <td class="text-center">
+                                                                {% if found %}
+                                                                    <span class="player-found"><i class="bi bi-check-circle"></i></span>
+                                                                {% else %}
+                                                                    <span class="player-not-found"><i class="bi bi-x-circle"></i></span>
+                                                                {% endif %}
+                                                            </td>
+                                                        </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        {% else %}
+                                            <div class="alert alert-warning">
+                                                No player data found for {{ result.home_team|default('home team') }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <!-- Away Team -->
+                                <div class="col-md-6">
+                                    <div class="team-section">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <div class="team-logo">
+                                                <i class="bi bi-airplane"></i>
+                                            </div>
+                                            <h5>{{ result.away_team|default('Unknown Team') }}</h5>
+                                        </div>
+                                        
+                                        {% if result.away_data and result.away_data|length > 0 %}
+                                            <table class="table table-sm">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Player</th>
+                                                        <th class="text-center">Found</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for player, found in result.away_data.items() %}
+                                                        <tr>
+                                                            <td>{{ player }}</td>
+                                                            <td class="text-center">
+                                                                {% if found %}
+                                                                    <span class="player-found"><i class="bi bi-check-circle"></i></span>
+                                                                {% else %}
+                                                                    <span class="player-not-found"><i class="bi bi-x-circle"></i></span>
+                                                                {% endif %}
+                                                            </td>
+                                                        </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        {% else %}
+                                            <div class="alert alert-warning">
+                                                No player data found for {{ result.away_team|default('away team') }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            {% if result.unmatched_home and result.unmatched_home|length > 0 or result.unmatched_away and result.unmatched_away|length > 0 %}
+                                <div class="unmatched-section">
+                                    <h5><i class="bi bi-exclamation-triangle"></i> Unmatched Players</h5>
+                                    
+                                    <div class="row">
+                                        {% if result.unmatched_home and result.unmatched_home|length > 0 %}
+                                            <div class="col-md-6">
+                                                <h6>{{ result.home_team|default('Home Team') }}</h6>
+                                                <div>
+                                                    {% for player in result.unmatched_home %}
+                                                        <div class="unmatched-player">
+                                                            <i class="bi bi-person-fill"></i> {{ player }}
+                                                        </div>
+                                                    {% endfor %}
+                                                </div>
+                                            </div>
+                                        {% endif %}
+                                        
+                                        {% if result.unmatched_away and result.unmatched_away|length > 0 %}
+                                            <div class="col-md-6">
+                                                <h6>{{ result.away_team|default('Away Team') }}</h6>
+                                                <div>
+                                                    {% for player in result.unmatched_away %}
+                                                        <div class="unmatched-player">
+                                                            <i class="bi bi-person-fill"></i> {{ player }}
+                                                        </div>
+                                                    {% endfor %}
+                                                </div>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+            
+            <div class="actions">
+                <a href="{{ url_for('batch_upload') }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Back to Batch Queue
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Save to Database Modal -->
+    <div class="modal fade" id="saveToDatabaseModal" tabindex="-1" aria-labelledby="saveToDatabaseModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <form action="{{ url_for('batch_save_all_to_database') }}" method="post">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="saveToDatabaseModalLabel">Save All Results to Database</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>This will save all completed video results to the database:</p>
+                        <ul>
+                            <li>Existing players detected in videos will have their appearances recorded</li>
+                            <li>Unmatched players will be saved to the unmatched players list</li>
+                            <li>All teams and matches will be created in the database if they don't exist</li>
+                        </ul>
+                        
+                        <p><strong>There are {{ batch_results|length }} completed videos ready to save</strong></p>
+                        
+                        {% for result in batch_results %}
+                            <input type="hidden" name="video_ids" value="{{ result.video.id }}">
+                        {% endfor %}
+                        
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" value="1" id="confirmSave" required>
+                            <label class="form-check-label" for="confirmSave">
+                                I understand this will save all results to the database
+                            </label>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-success">Save All Results</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Add JavaScript for consistent display and debugging -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get all match cards
+            const matchCards = document.querySelectorAll('.match-card');
+            
+            // Ensure each card has unique ID
+            matchCards.forEach((card, index) => {
+                // Get collapse toggle button
+                const toggleBtn = card.querySelector('.collapse-toggle');
+                const matchId = `match-${index + 1}`;
+                
+                // Make sure each toggle button has correct target
+                if (toggleBtn) {
+                    toggleBtn.setAttribute('data-bs-target', `#${matchId}`);
+                }
+                
+                // Make sure each collapsible area has correct ID
+                const collapseArea = card.querySelector('.collapse');
+                if (collapseArea) {
+                    collapseArea.id = matchId;
+                }
+            });
+            
+            // Batch collapse/expand functionality
+            const collapseAllBtn = document.getElementById('collapseAllBtn');
+            const expandAllBtn = document.getElementById('expandAllBtn');
+            
+            if (collapseAllBtn) {
+                collapseAllBtn.addEventListener('click', function() {
+                    matchCards.forEach(card => {
+                        const collapseEl = card.querySelector('.collapse');
+                        if (collapseEl && collapseEl.classList.contains('show')) {
+                            // Use Bootstrap's collapse API
+                            const bsCollapse = new bootstrap.Collapse(collapseEl);
+                            bsCollapse.hide();
+                        }
+                    });
+                });
+            }
+            
+            if (expandAllBtn) {
+                expandAllBtn.addEventListener('click', function() {
+                    matchCards.forEach(card => {
+                        const collapseEl = card.querySelector('.collapse');
+                        if (collapseEl && !collapseEl.classList.contains('show')) {
+                            // Use Bootstrap's collapse API
+                            const bsCollapse = new bootstrap.Collapse(collapseEl);
+                            bsCollapse.show();
+                        }
+                    });
+                });
+            }
+            
+            // Data consistency check - for debugging
+            console.log('Loaded batch results:', {{ batch_results|length }});
+            
+            // Set opacity to 1 after everything is ready
+            setTimeout(() => {
+                document.querySelector('.results-container').style.opacity = '1';
+            }, 200);
+        });
+    </script>
+</body>
+</html> 

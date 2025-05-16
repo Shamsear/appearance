@@ -1,0 +1,16 @@
+flask==2.3.3
+opencv-python==4.8.0.76
+numpy==1.24.3
+pandas==2.0.3
+easyocr==1.7.1
+Pillow==10.0.0
+openpyxl==3.1.2
+Werkzeug==2.3.7
+torch==2.0.1
+torchvision==0.15.2
+fuzzywuzzy==0.18.0
+python-Levenshtein==0.21.0
+supabase==1.0.3
+python-dotenv==1.0.0
+cloudinary
+gunicorn 
