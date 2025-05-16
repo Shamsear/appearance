@@ -384,6 +384,7 @@ def extract_frames(video_path, output_dir, video_id=None):
     cloud_output_dir = f"{output_dir}/{extraction_id}"
     
     # If video is a Cloudinary URL, download temporarily
+    temp_video_path = None
     if video_path.startswith('http'):
         temp_video = tempfile.NamedTemporaryFile(delete=False, suffix='.mp4')
         temp_video_path = temp_video.name
@@ -398,7 +399,7 @@ def extract_frames(video_path, output_dir, video_id=None):
         print("Error: Could not open video.")
         update_progress('error', 100, 'Could not open video file', video_id=video_id)
         # Clean up if we downloaded a temp file
-        if video_path.startswith('http') and 'temp_video_path' in locals():
+        if temp_video_path and os.path.exists(temp_video_path):
             os.unlink(temp_video_path)
         return []
     
@@ -443,8 +444,8 @@ def extract_frames(video_path, output_dir, video_id=None):
                 if total_frames > 0:
                     progress_percent = min(95, 5 + (frame_count / total_frames * 90))
                     update_progress('extracting', progress_percent, 
-                                f'Extracted {len(saved_frames)} frames ({frame_count}/{total_frames})',
-                                current_frame=frame_count, video_id=video_id)
+                                   f'Extracted {len(saved_frames)} frames ({frame_count}/{total_frames})',
+                                   current_frame=frame_count, video_id=video_id)
                 
                 # Print progress
                 if len(saved_frames) % 10 == 0:
@@ -454,9 +455,8 @@ def extract_frames(video_path, output_dir, video_id=None):
     finally:
         cap.release()
         # Clean up if we downloaded a temp file
-        if video_path.startswith('http') and 'temp_video_path' in locals():
-            if os.path.exists(temp_video_path):
-                os.unlink(temp_video_path)
+        if temp_video_path and os.path.exists(temp_video_path):
+            os.unlink(temp_video_path)
     
     print(f"Total frames extracted: {len(saved_frames)}")
     update_progress('extracting', 100, f'Finished extracting {len(saved_frames)} frames', video_id=video_id)
@@ -918,7 +918,7 @@ def extract_player_cards(image_path, reader):
     
     # Use adaptive thresholding to handle different lighting conditions
     binary = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, 
-                                 cv2.THRESH_BINARY_INV, 11, 2)
+                                   cv2.THRESH_BINARY_INV, 11, 2)
     
     # Define unwanted UI terms and labels to filter out
     unwanted_terms = [
@@ -1639,9 +1639,18 @@ def process_video():
     video_path = session.get('video_path')
     excel_path = session.get('excel_path')
     
-    if not video_path or not os.path.exists(video_path):
-        flash('No video found for processing')
+    print(f"Processing video: {video_path}")  # Debug log
+    
+    if not video_path:
+        flash('No video found for processing. The video path was not found in session.')
         return redirect(url_for('index'))
+    
+    # For Cloudinary URLs, we only need to verify the URL exists, not the file
+    if not video_path.startswith('http'):
+        # Local path - check if it exists
+        if not os.path.exists(video_path):
+            flash('No video found for processing. The video file was not found.')
+            return redirect(url_for('index'))
     
     # Reset progress tracking
     reset_progress()
@@ -3019,7 +3028,7 @@ def export_excel():
                 ws_unmatched.cell(row=1, column=3, value="POSITION")
                 ws_unmatched.cell(row=1, column=4, value="MATCH DAY")
                 ws_unmatched.cell(row=1, column=5, value="DETECTED ON")
-                    
+                
                 # Add unmatched players
                 u_row = 2
                 for player in unmatched_players:
@@ -3029,7 +3038,6 @@ def export_excel():
                     ws_unmatched.cell(row=u_row, column=4, value=player.get("match_day", "Unknown"))
                     ws_unmatched.cell(row=u_row, column=5, value=player.get("created_at", ""))
                     u_row += 1
-            print("Added unmatched players sheet")
         except Exception as e:
             print(f"Error adding unmatched players to Excel: {str(e)}")
             traceback.print_exc()
@@ -3229,24 +3237,24 @@ def export_excel_alt():
             unmatched_players = get_unmatched_players()
             if unmatched_players:
                 # Create a sheet for unmatched players
-                ws_unmatched = wb.create_sheet(title="Unmatched Players")
+                    ws_unmatched = wb.create_sheet(title="Unmatched Players")
                 
                 # Set up headers
-                ws_unmatched.cell(row=1, column=1, value="TEAM")
-                ws_unmatched.cell(row=1, column=2, value="PLAYER")
-                ws_unmatched.cell(row=1, column=3, value="POSITION")
-                ws_unmatched.cell(row=1, column=4, value="MATCH DAY")
-                ws_unmatched.cell(row=1, column=5, value="DETECTED ON")
+                    ws_unmatched.cell(row=1, column=1, value="TEAM")
+                    ws_unmatched.cell(row=1, column=2, value="PLAYER")
+                    ws_unmatched.cell(row=1, column=3, value="POSITION")
+                    ws_unmatched.cell(row=1, column=4, value="MATCH DAY")
+                    ws_unmatched.cell(row=1, column=5, value="DETECTED ON")
                     
                 # Add unmatched players
-                u_row = 2
-                for player in unmatched_players:
-                    ws_unmatched.cell(row=u_row, column=1, value=player.get("team_name", "Unknown"))
-                    ws_unmatched.cell(row=u_row, column=2, value=player.get("name", "Unknown"))
-                    ws_unmatched.cell(row=u_row, column=3, value=player.get("position", "Unknown"))
-                    ws_unmatched.cell(row=u_row, column=4, value=player.get("match_day", "Unknown"))
-                    ws_unmatched.cell(row=u_row, column=5, value=player.get("created_at", ""))
-                    u_row += 1
+                    u_row = 2
+                    for player in unmatched_players:
+                        ws_unmatched.cell(row=u_row, column=1, value=player.get("team_name", "Unknown"))
+                        ws_unmatched.cell(row=u_row, column=2, value=player.get("name", "Unknown"))
+                        ws_unmatched.cell(row=u_row, column=3, value=player.get("position", "Unknown"))
+                        ws_unmatched.cell(row=u_row, column=4, value=player.get("match_day", "Unknown"))
+                        ws_unmatched.cell(row=u_row, column=5, value=player.get("created_at", ""))
+                        u_row += 1
         except Exception as e:
             print(f"Error adding unmatched players: {str(e)}")
             
