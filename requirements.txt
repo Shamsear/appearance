@@ -12,5 +12,6 @@ fuzzywuzzy==0.18.0
 python-Levenshtein==0.21.0
 supabase==1.0.3
 python-dotenv==1.0.0
-cloudinary
-gunicorn 
+cloudinary==1.34.0
+gunicorn==21.2.0
+requests==2.31.0 

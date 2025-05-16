@@ -1451,6 +1451,7 @@ def match_exists(home_team, away_team, match_day):
         return None
 
 @app.route('/')
+@app.route('/home')
 def index():
     # Get team names from Excel for the dropdown
     teams = get_teams_from_excel()
@@ -1464,7 +1465,7 @@ def index():
         for team in teams:
             print(f"  - {team}")
     
-    return render_template('index.html', teams=teams)
+    return render_template('home.html', teams=teams)
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
@@ -3794,4 +3795,4 @@ def batch_update_player_names(video_id):
     return redirect(url_for('batch_results', video_id=video_id))
 
 if __name__ == '__main__':
-    app.run(debug=True) 
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
