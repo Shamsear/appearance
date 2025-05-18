@@ -1,12 +1,14 @@
 flask==2.3.3
 python-dotenv==1.0.0
 supabase==1.0.3
-numpy<2.0
-opencv-python-headless==4.8.0.76
+numpy==1.23.5
+pillow==10.0.0
+torch==1.13.1
+torchvision==0.14.1
+opencv-python-headless==4.7.0.72
 easyocr==1.7.1
 werkzeug==2.3.7
 openpyxl==3.1.2
-pillow==10.0.0
 flask-session==0.5.0
 apscheduler==3.10.1
 gunicorn==21.2.0 
