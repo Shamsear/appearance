@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}Players - Player Appearance Tracker{% endblock %}
+
+{% block head %}
+<style>
+    .appearance-count {
+        font-size: 1.2em;
+        font-weight: bold;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Players</h1>
+            <div class="btn-group">
+                <a href="{{ url_for('players') }}" class="btn btn-outline-primary {% if not request.args.get('team_id') %}active{% endif %}">
+                    All Teams
+                </a>
+                {% for team in teams %}
+                <a href="{{ url_for('players', team_id=team.id) }}" 
+                   class="btn btn-outline-primary {% if request.args.get('team_id') == team.id %}active{% endif %}">
+                    {{ team.name }}
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Player</th>
+                        <th>Team</th>
+                        <th>Value</th>
+                        <th>Salary</th>
+                        <th class="text-center">Appearances</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for player in players %}
+                    <tr>
+                        <td>{{ player.name }}</td>
+                        <td>
+                            {% if player.team %}
+                            {{ player.team.name }}
+                            {% else %}
+                            Unknown
+                            {% endif %}
+                        </td>
+                        <td>{{ player.value }}</td>
+                        <td>{{ player.salary }}</td>
+                        <td class="text-center">
+                            <span class="badge rounded-pill bg-{% if player.total_appearances > 0 %}success{% else %}secondary{% endif %} appearance-count">
+                                {{ player.total_appearances or 0 }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center">No players found</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %} 
