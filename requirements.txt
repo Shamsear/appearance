@@ -6,7 +6,7 @@ easyocr==1.7.1
 werkzeug==2.3.7
 openpyxl==3.1.2
 pillow==10.0.0
-flask-session==0.5.9
+flask-session==0.5.0
 apscheduler==3.10.1
 gunicorn==21.2.0
 cloudinary==1.36.0 
