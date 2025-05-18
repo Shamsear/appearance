@@ -5,6 +5,7 @@ import re
 import json
 import uuid
 import threading
+import gc
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session, send_file
 from flask_session import Session
 from werkzeug.utils import secure_filename
@@ -853,126 +854,167 @@ def check_processing_timeout(task, timeout_minutes=10):
 
 def process_video_automatically(upload_id):
     """Process the video automatically without user intervention"""
-    with task_lock:
-        task = processing_tasks[upload_id]
-        # Add start time for expiration tracking
-        task['start_time'] = time.time()
-        # Initialize log messages array
-        task['log_messages'] = []
-        # Initialize step details
-        task['step_details'] = {}
-        # Initialize frame counters
-        task['frames_processed'] = 0
-        task['player_frames'] = 0
-        # Update status to extracting frames
-        task['status'] = 'extracting_frames'
-        task['current_step'] = 2
-        # Add log entry
-        task['log_messages'].append({
-            'message': f"Starting to process video: {os.path.basename(task['filepath'])}",
-            'type': 'info'
-        })
-    
     try:
-        # Check for timeout periodically
-        if check_processing_timeout(task):
-            with task_lock:
-                task['status'] = 'error'
-                task['error'] = 'Processing timed out after 10 minutes'
-                task['log_messages'].append({
-                    'message': 'Processing timed out after 10 minutes',
-                    'type': 'error'
-                })
-            print(f"Task {upload_id} timed out")
-            return
-                
-        # Create a progress logging function
-        def log_progress(message, step=None, details=None, message_type='info'):
-            with task_lock:
-                task['log_messages'].append({
-                    'message': message,
-                    'type': message_type
-                })
-                if step and details:
-                    task['step_details'][str(step)] = details
-                print(f"Progress update: {message}")
-        
-        # Start processing
-        log_progress("Initializing OCR engine...", 2, "Initializing")
-        
-        # Actually process the video
-        log_progress("Starting automatic video processing...", 2, "Processing video")
-        
-        start_time = time.time()
-        result, home_appearances, away_appearances = process_video(
-            task['filepath'], task['home_team_id'], task['away_team_id'], task['match_day'],
-            progress_callback=log_progress
-        )
-        processing_time = time.time() - start_time
-        
-        log_progress(f"Processing completed in {processing_time:.1f} seconds", 5, f"Processed in {processing_time:.1f}s")
-        
         with task_lock:
-            # Check for timeout again
-            if check_processing_timeout(task):
-                task['status'] = 'error'
-                task['error'] = 'Processing timed out after 10 minutes'
-                task['log_messages'].append({
-                    'message': 'Processing timed out after 10 minutes',
-                    'type': 'error'
-                })
-                print(f"Task {upload_id} timed out")
+            task = processing_tasks.get(upload_id)
+            if not task:
+                print(f"No task found for upload ID: {upload_id}")
                 return
                 
-            # Update status to identifying frames
-            task['status'] = 'identifying_frames'
-            task['current_step'] = 3
+            # Add start time for expiration tracking
+            task['start_time'] = time.time()
+            # Initialize log messages array
+            task['log_messages'] = []
+            # Initialize step details
+            task['step_details'] = {}
+            # Initialize frame counters
+            task['frames_processed'] = 0
+            task['player_frames'] = 0
+            # Update status to extracting frames
+            task['status'] = 'extracting_frames'
+            task['current_step'] = 2
+            # Add log entry
+            task['log_messages'].append({
+                'message': f"Starting to process video: {os.path.basename(task['filepath'])}",
+                'type': 'info'
+            })
+
+        # Process video in chunks to manage memory
+        chunk_size = 30  # Process 30 frames at a time
+        filepath = task['filepath']
+        
+        # Process video in chunks
+        result, match_id, error = process_video_in_chunks(
+            filepath,
+            task['home_team_id'],
+            task['away_team_id'],
+            task['match_day'],
+            chunk_size,
+            lambda msg, progress=None, step=None, status=None: update_progress(upload_id, msg, progress, step, status)
+        )
+
+        with task_lock:
+            if upload_id in processing_tasks:
+                if error:
+                    processing_tasks[upload_id]['status'] = 'error'
+                    processing_tasks[upload_id]['error'] = error
+                else:
+                    processing_tasks[upload_id]['status'] = 'complete'
+                    processing_tasks[upload_id]['result'] = result
+                    processing_tasks[upload_id]['match_id'] = match_id
+
+    except Exception as e:
+        print(f"Error in process_video_automatically: {str(e)}")
+        traceback.print_exc()
+        with task_lock:
+            if upload_id in processing_tasks:
+                processing_tasks[upload_id]['status'] = 'error'
+                processing_tasks[upload_id]['error'] = str(e)
+
+def process_video_in_chunks(video_path, home_team_id, away_team_id, match_day, chunk_size, progress_callback=None):
+    """Process video in chunks to manage memory usage"""
+    try:
+        # Create match record first
+        match_data = {
+            "home_team_id": home_team_id,
+            "away_team_id": away_team_id,
+            "match_day": match_day,
+            "date": time.strftime("%Y-%m-%d")
+        }
+        
+        if progress_callback:
+            progress_callback("Creating match record", 2, "Creating match record")
+        
+        match_result = supabase.table("matches").insert(match_data).execute()
+        
+        if not match_result.data or len(match_result.data) == 0:
+            return None, None, "Failed to create match record"
+        
+        match_id = match_result.data[0]["id"]
+        
+        if progress_callback:
+            progress_callback(f"Created match record with ID: {match_id}", 2, "Match record created", "success")
+        
+        # Initialize OCR
+        reader = initialize_ocr()
+        if progress_callback:
+            progress_callback("OCR engine initialized", 2, "OCR Ready")
+        
+        # Create temporary directory for frames
+        with tempfile.TemporaryDirectory() as temp_dir:
+            if progress_callback:
+                progress_callback("Processing video in chunks", 2, "Extracting frames")
             
-            # Update status to extracting text
-            task['status'] = 'extracting_text'
-            task['current_step'] = 4
-            
-            # Update status to updating database
-            task['status'] = 'updating_database'
-            task['current_step'] = 5
-            
-            if "error" in result:
-                task['status'] = 'error'
-                task['error'] = result['error']
-                task['log_messages'].append({
-                    'message': f"Error: {result['error']}",
-                    'type': 'error'
-                })
-            else:
-                # Store results in task for session retrieval
-                task['result'] = result
-                task['home_appearances'] = home_appearances
-                task['away_appearances'] = away_appearances
+            # Extract and process frames in chunks
+            frames = []
+            for chunk in extract_frames_in_chunks(video_path, temp_dir, chunk_size):
+                frames.extend(chunk)
+                if progress_callback:
+                    progress_callback(f"Processed {len(frames)} frames", 2, "Extracting frames")
                 
-                # Add summary log
-                total_players = len(home_appearances) + len(away_appearances)
-                task['log_messages'].append({
-                    'message': f"Found {len(home_appearances)} home players and {len(away_appearances)} away players",
-                    'type': 'success'
-                })
-                task['log_messages'].append({
-                    'message': f"Successfully updated {total_players} player appearances in database",
-                    'type': 'success'
-                })
-                
-                # Mark as complete
-                task['status'] = 'complete'
+                # Clear memory after each chunk
+                gc.collect()
+            
+            # Process the frames
+            player_frames = identify_player_ratings_frames(frames, reader)
+            
+            if progress_callback:
+                progress_callback(f"Found {len(player_frames)} player rating frames", 3, "Processing frames")
+            
+            # Process player data and update database
+            process_player_data(player_frames, match_id, home_team_id, away_team_id)
+            
+            return {"status": "success", "frames_processed": len(frames)}, match_id, None
             
     except Exception as e:
-        with task_lock:
-            task['status'] = 'error'
-            task['error'] = str(e)
-            task['log_messages'].append({
-                'message': f"Error in processing: {str(e)}",
-                'type': 'error'
-            })
-            print(f"Error in processing: {str(e)}")
-            print(traceback.format_exc())  # Print full traceback
+        return None, None, str(e)
+
+def extract_frames_in_chunks(video_path, output_dir, chunk_size):
+    """Extract frames from video in chunks"""
+    import cv2
+    
+    cap = cv2.VideoCapture(video_path)
+    frame_count = 0
+    chunk = []
+    
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            if chunk:
+                yield chunk
+            break
+            
+        frame_count += 1
+        
+        # Save frame to temporary file
+        frame_path = os.path.join(output_dir, f"frame_{frame_count}.jpg")
+        cv2.imwrite(frame_path, frame)
+        chunk.append(frame_path)
+        
+        if len(chunk) >= chunk_size:
+            yield chunk
+            chunk = []
+            
+    cap.release()
+
+def update_progress(upload_id, message, progress=None, step=None, status=None):
+    """Update progress for a task"""
+    with task_lock:
+        if upload_id in processing_tasks:
+            task = processing_tasks[upload_id]
+            if message:
+                if 'log_messages' not in task:
+                    task['log_messages'] = []
+                task['log_messages'].append({
+                    'message': message,
+                    'type': 'info'
+                })
+            if progress is not None:
+                task['progress'] = progress
+            if step is not None:
+                task['current_step'] = step
+            if status is not None:
+                task['status'] = status
 
 def process_video_for_review(upload_id):
     """Process the video for review"""
@@ -1140,52 +1182,51 @@ def after_request(response):
 
 @app.route('/upload-status/<upload_id>')
 def upload_status(upload_id):
-    with task_lock:
-        if upload_id not in processing_tasks:
-            print(f"Invalid upload ID requested: {upload_id}")
-            return jsonify({'error': 'Invalid upload ID'}), 404
-        
-        task = processing_tasks[upload_id]
-        print(f"Status for {upload_id}: {task['status']}, step: {task['current_step']}")
-        
-        response = {
-            'status': task['status'],
-            'current_step': task['current_step'],
-            'process_type': task['process_type'],
-            'timestamp': time.time()
-        }
-        
-        # Add more detailed progress information
-        if 'frames_processed' in task:
-            response['frames_processed'] = task['frames_processed']
-        
-        if 'player_frames' in task:
-            response['player_frames'] = task['player_frames']
-        
-        if 'original_frame_count' in task and 'deduplicated_frame_count' in task:
-            response['original_frame_count'] = task['original_frame_count']
-            response['deduplicated_frame_count'] = task['deduplicated_frame_count']
-        
-        # Add step-specific details if available
-        if 'step_details' in task:
-            response['step_details'] = task['step_details']
-        
-        # Add any log messages
-        if 'log_messages' in task:
-            response['log_messages'] = task['log_messages']
-            # Reset log messages after sending (to avoid duplicates)
-            task['log_messages'] = []
-        
-        if task['status'] == 'complete':
-            if task['process_type'] == 'review':
-                response['session_id'] = task['session_id']
-            print(f"Task complete for {upload_id}, redirecting to {'review' if task['process_type'] == 'review' else 'results'}")
-        
-        if task['status'] == 'error':
-            response['error'] = task['error']
-            print(f"Error in task {upload_id}: {task['error']}")
-    
-    return jsonify(response)
+    """Get the status of an upload"""
+    try:
+        with task_lock:
+            task = processing_tasks.get(upload_id)
+            if not task:
+                return jsonify({
+                    'status': 'error',
+                    'error': 'Invalid upload ID',
+                    'message': f'No task found with ID: {upload_id}'
+                }), 404
+            
+            # Create response data
+            response = {
+                'status': task['status'],
+                'current_step': task.get('current_step', 1),
+                'progress': task.get('progress', 0),
+                'frames_processed': task.get('frames_processed', 0),
+                'player_frames': task.get('player_frames', 0),
+                'log_messages': task.get('log_messages', []),
+                'step_details': task.get('step_details', {}),
+                'cloudinary_url': task.get('cloudinary_url'),
+                'elapsed_time': int(time.time() - task['start_time'])
+            }
+            
+            # Add error if present
+            if 'error' in task:
+                response['error'] = task['error']
+            
+            # Add result if complete
+            if task['status'] == 'complete' and 'result' in task:
+                response['result'] = task['result']
+                if 'session_id' in task:
+                    response['session_id'] = task['session_id']
+                    response['redirect_url'] = url_for('review_frames', session_id=task['session_id'])
+            
+            return jsonify(response)
+            
+    except Exception as e:
+        print(f"Error in upload_status: {str(e)}")
+        traceback.print_exc()
+        return jsonify({
+            'status': 'error',
+            'error': 'Server error',
+            'message': str(e)
+        }), 500
 
 @app.route('/review/<session_id>')
 def review_frames(session_id):
