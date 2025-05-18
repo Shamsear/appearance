@@ -37,13 +37,13 @@ app.secret_key = os.environ.get("SECRET_KEY", "dev_key_for_testing")
 
 # Configure server-side sessions
 app.config['SESSION_TYPE'] = 'filesystem'
-app.config['SESSION_FILE_DIR'] = os.path.join(os.getcwd(), 'flask_sessions')
+app.config['SESSION_FILE_DIR'] = os.path.join(tempfile.gettempdir(), 'flask_sessions')
 app.config['SESSION_PERMANENT'] = False
 app.config['SESSION_USE_SIGNER'] = True
 Session(app)
 
-app.config['UPLOAD_FOLDER'] = 'uploads'
-app.config['FRAMES_FOLDER'] = os.path.join('static', 'frames')
+app.config['UPLOAD_FOLDER'] = os.path.join(tempfile.gettempdir(), 'uploads')
+app.config['FRAMES_FOLDER'] = os.path.join(tempfile.gettempdir(), 'frames')
 app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024  # 500 MB max upload size
 app.config['ALLOWED_EXTENSIONS'] = {'mp4', 'avi', 'mkv', 'mov'}
 

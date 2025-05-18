@@ -123,4 +123,36 @@ This project uses the following technologies:
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details. 
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Deployment to Render
+
+This application can be deployed to Render.com using GitHub integration. Follow these steps:
+
+1. **Fork this repository to your GitHub account**
+
+2. **Create a Render account**
+   - Sign up at [render.com](https://render.com)
+   - Connect your GitHub account to Render
+
+3. **Create a new Web Service**
+   - From your Render dashboard, click "New" and select "Web Service"
+   - Connect your GitHub repository
+   - Render will automatically detect the `render.yaml` configuration
+
+4. **Configure environment variables**
+   - In the Render dashboard for your service, go to "Environment"
+   - Add the following environment variables:
+     - `SUPABASE_URL`: Your Supabase project URL
+     - `SUPABASE_KEY`: Your Supabase API key
+   - The `SECRET_KEY` will be automatically generated
+
+5. **Deploy**
+   - Render will automatically build and deploy your application
+   - Any future pushes to the main branch will trigger automatic redeployments
+
+6. **Access your application**
+   - Once deployed, you can access your application at the URL provided by Render
+   - The format will be: `https://your-service-name.onrender.com`
+
+**Note**: This application uses Render's ephemeral filesystem for temporary storage. Uploaded videos and generated frames are not persisted between deployments. 

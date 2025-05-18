@@ -2,12 +2,15 @@ services:
   - type: web
     name: appearence-app
     env: python
-    buildCommand: |
-      apt-get update && apt-get install -y libgl1-mesa-glx libglib2.0-0 libsm6 libxext6 libxrender-dev libgomp1 poppler-utils
-      pip install -r requirements.txt
-    startCommand: gunicorn app:app --timeout 120
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
     envVars:
       - key: PYTHON_VERSION
-        value: 3.9.12
-      - key: PYTHONUNBUFFERED
-        value: "true" 
+        value: 3.9.7
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_KEY
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true 
