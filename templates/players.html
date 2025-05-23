@@ -1,0 +1,419 @@
+{% extends "base.html" %}
+
+{% block title %}Players - Football Player Tracker{% endblock %}
+
+{% block content %}
+<style>
+    /* Vision OS inspired additional styling */
+    .player-card {
+        position: relative;
+        z-index: 1;
+        overflow: visible;
+    }
+    
+    .player-card::before {
+        content: '';
+        position: absolute;
+        inset: -1px;
+        border-radius: inherit;
+        padding: 1px;
+        background: linear-gradient(120deg, rgba(255,255,255,0.6), rgba(255,255,255,0.1));
+        mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
+        z-index: -1;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    
+    .player-card:hover::before {
+        opacity: 1;
+    }
+    
+    .table-row-highlight:hover {
+        background-color: rgba(255, 255, 255, 0.5);
+        backdrop-filter: blur(8px);
+    }
+    
+    /* Subtle pulse animation for appearances circle */
+    @keyframes subtle-pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+    }
+    
+    .player-card:hover .rounded-full {
+        animation: subtle-pulse 2s infinite ease-in-out;
+    }
+</style>
+<div class="mb-8 animate-fadeIn">
+    <div class="glass-morphism rounded-2xl p-6 mb-8 shadow-vision">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-800 mb-4 md:mb-0">
+                <span class="text-primary-600">Players</span> Directory
+            </h1>
+            
+            <div class="flex items-center space-x-3">
+                <div class="relative">
+                    <input type="text" id="player-search" placeholder="Search players..." class="bg-white/90 backdrop-blur-sm border border-gray-200/70 rounded-xl pl-10 pr-4 py-2.5 w-64 focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 outline-none shadow-sm transition duration-150">
+                    <i class="fas fa-search absolute left-3.5 top-3.5 text-gray-400"></i>
+                </div>
+                <button id="refresh-btn" class="px-4 py-2.5 rounded-xl font-medium text-gray-700 bg-white/90 border border-gray-200/70 shadow-sm hover:bg-gray-50/90 transition-all duration-200 hover-lift active:bg-primary-50 active:text-primary-600 active:border-primary-200">
+                    <i class="fas fa-sync-alt mr-2"></i>Refresh
+                </button>
+                <button class="px-4 py-2.5 rounded-xl font-medium text-gray-700 bg-white/90 border border-gray-200/70 shadow-sm hover:bg-gray-50/90 transition-all duration-200 hover-lift active:bg-primary-50 active:text-primary-600 active:border-primary-200" data-view="table" id="table-view-btn">
+                    <i class="fas fa-table mr-2"></i>Table
+                </button>
+                <button class="px-4 py-2.5 rounded-xl font-medium text-gray-700 bg-white/90 border border-gray-200/70 shadow-sm hover:bg-gray-50/90 transition-all duration-200 hover-lift active:bg-primary-50 active:text-primary-600 active:border-primary-200" data-view="card" id="card-view-btn">
+                    <i class="fas fa-th-large mr-2"></i>Cards
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Team Filter -->
+    <div class="glass-morphism rounded-2xl p-5 mb-8 shadow-sm overflow-hidden">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4 px-1">Filter by Team</h3>
+        <div class="flex space-x-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
+            <a href="{{ url_for('players') }}" class="flex-shrink-0 px-4 py-2.5 rounded-xl font-medium transition duration-200 hover-lift {% if not request.args.get('team_id') %}bg-primary-50/90 text-primary-700 border border-primary-200/80{% else %}bg-white/90 text-gray-700 border border-gray-200/70 hover:bg-gray-50/80{% endif %}">
+                <i class="fas fa-users mr-2"></i>All Teams
+            </a>
+            {% for team in teams %}
+            <a href="{{ url_for('players', team_id=team.id) }}" 
+               class="flex-shrink-0 px-4 py-2.5 rounded-xl font-medium transition duration-200 hover-lift {% if request.args.get('team_id') == team.id|string %}bg-primary-50/90 text-primary-700 border border-primary-200/80{% else %}bg-white/90 text-gray-700 border border-gray-200/70 hover:bg-gray-50/80{% endif %}">
+                <i class="fas fa-futbol mr-2 text-sm"></i>{{ team.name }}
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    
+    <!-- Loading Indicator (initially hidden) -->
+    <div id="loading-indicator" class="glass-morphism rounded-2xl p-6 mb-8 shadow-sm flex justify-center items-center hidden">
+        <div class="flex items-center space-x-4">
+            <div class="relative w-12 h-12">
+                <div class="absolute inset-0 border-4 border-primary-100/80 rounded-full"></div>
+                <div class="absolute inset-0 border-4 border-transparent border-t-primary-500 rounded-full animate-spin"></div>
+            </div>
+            <p class="text-lg text-gray-700 font-medium">Loading players...</p>
+        </div>
+    </div>
+    
+    <!-- Card View (mobile-first) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" id="card-view">
+        {% for player in players %}
+        <div class="glass-morphism rounded-2xl shadow-sm hover:shadow-vision transition-all duration-300 hover:-translate-y-1 hover:scale-[1.02] active:scale-[0.98] overflow-hidden animate-fadeIn player-card" style="animation-delay: {{ loop.index * 50 }}ms;">
+            <div class="px-6 py-5 border-b border-gray-100/60">
+                <h3 class="text-xl font-semibold text-gray-800">{{ player.name }}</h3>
+                <div class="text-sm text-gray-500 mt-1 flex items-center">
+                    {% if player.team %}
+                    <i class="fas fa-futbol mr-2 text-primary-500/70"></i> {{ player.team.name }}
+                    {% else %}
+                    <i class="fas fa-question-circle mr-2 text-gray-400"></i> Unknown Team
+                    {% endif %}
+                </div>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-2 gap-5 mb-6">
+                    <div class="bg-white/70 rounded-xl p-3 text-center backdrop-blur-sm shadow-sm">
+                        <div class="text-xs text-gray-500 mb-1">Value</div>
+                        <div class="text-base font-medium text-gray-800">{{ player.value }}</div>
+                    </div>
+                    <div class="bg-white/70 rounded-xl p-3 text-center backdrop-blur-sm shadow-sm">
+                        <div class="text-xs text-gray-500 mb-1">Salary</div>
+                        <div class="text-base font-medium text-gray-800">{{ player.salary }}</div>
+                    </div>
+                </div>
+                <div class="flex flex-col items-center">
+                    <div class="w-20 h-20 rounded-full flex items-center justify-center text-2xl font-bold mb-3 shadow-sm transition-all duration-300 {% if player.total_appearances == 0 %}bg-gray-100/80 text-gray-400{% else %}bg-primary-100/80 text-primary-700{% endif %} transform hover:scale-110">
+                        {{ player.total_appearances or 0 }}
+                    </div>
+                    <div class="text-sm font-medium text-gray-600">Appearances</div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="col-span-full glass-morphism p-5 rounded-xl shadow-sm border border-blue-100/50 text-blue-800">
+            <div class="flex items-center">
+                <i class="fas fa-info-circle mr-3 text-xl text-blue-500"></i>
+                <span>No players found matching your criteria</span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <!-- Table View (for larger screens) -->
+    <div class="hidden glass-morphism rounded-2xl shadow-sm overflow-hidden animate-fadeIn" id="table-view">
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead>
+                    <tr>
+                        <th class="px-6 py-4 text-left text-gray-700 font-semibold border-b border-gray-100/60 bg-white/30 backdrop-blur-sm">Player</th>
+                        <th class="px-6 py-4 text-left text-gray-700 font-semibold border-b border-gray-100/60 bg-white/30 backdrop-blur-sm">Team</th>
+                        <th class="px-6 py-4 text-left text-gray-700 font-semibold border-b border-gray-100/60 bg-white/30 backdrop-blur-sm">Value</th>
+                        <th class="px-6 py-4 text-left text-gray-700 font-semibold border-b border-gray-100/60 bg-white/30 backdrop-blur-sm">Salary</th>
+                        <th class="px-6 py-4 text-center text-gray-700 font-semibold border-b border-gray-100/60 bg-white/30 backdrop-blur-sm">Appearances</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for player in players %}
+                    <tr class="table-row-highlight hover:bg-white/40 transition-all duration-200">
+                        <td class="px-6 py-4 font-medium text-gray-800">{{ player.name }}</td>
+                        <td class="px-6 py-4 text-gray-600">
+                            {% if player.team %}
+                            <div class="flex items-center">
+                                <div class="w-6 h-6 bg-primary-50/80 rounded-full flex items-center justify-center mr-2 shadow-sm">
+                                    <i class="fas fa-futbol text-xs text-primary-500"></i>
+                                </div>
+                                {{ player.team.name }}
+                            </div>
+                            {% else %}
+                            Unknown
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-gray-600">{{ player.value }}</td>
+                        <td class="px-6 py-4 text-gray-600">{{ player.salary }}</td>
+                        <td class="px-6 py-4 text-center">
+                            <div class="inline-flex items-center justify-center w-12 h-12 rounded-full {% if player.total_appearances == 0 %}bg-gray-100/80 text-gray-400{% else %}bg-primary-100/80 text-primary-700{% endif %} font-semibold shadow-sm transform transition-all duration-300 hover:scale-110">
+                                {{ player.total_appearances or 0 }}
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="px-6 py-8 text-center text-gray-500">No players found</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Scroll to Top Button -->
+<button id="scroll-to-top" class="fixed bottom-6 right-6 w-12 h-12 rounded-full bg-white/80 backdrop-blur-md shadow-vision flex items-center justify-center text-primary-600 border border-gray-100/50 opacity-0 invisible transition-all duration-300 hover:bg-primary-50/90 hover:text-primary-700 hover:scale-110 active:scale-95">
+    <i class="fas fa-arrow-up"></i>
+</button>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // View toggle functionality
+    const tableViewBtn = document.getElementById('table-view-btn');
+    const cardViewBtn = document.getElementById('card-view-btn');
+    const tableView = document.getElementById('table-view');
+    const cardView = document.getElementById('card-view');
+    const playerSearch = document.getElementById('player-search');
+    const loadingIndicator = document.getElementById('loading-indicator');
+    const refreshBtn = document.getElementById('refresh-btn');
+    const scrollToTopBtn = document.getElementById('scroll-to-top');
+    
+    // Scroll to top functionality
+    window.addEventListener('scroll', function() {
+        if (window.pageYOffset > 300) {
+            scrollToTopBtn.classList.remove('opacity-0', 'invisible');
+            scrollToTopBtn.classList.add('opacity-100');
+        } else {
+            scrollToTopBtn.classList.remove('opacity-100');
+            scrollToTopBtn.classList.add('opacity-0');
+            setTimeout(() => {
+                if (window.pageYOffset <= 300) {
+                    scrollToTopBtn.classList.add('invisible');
+                }
+            }, 300);
+        }
+    });
+    
+    scrollToTopBtn.addEventListener('click', function() {
+        // Add bounce animation
+        scrollToTopBtn.classList.add('animate-bounce');
+        
+        // Smooth scroll to top
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
+        
+        // Remove bounce animation after scroll completes
+        setTimeout(() => {
+            scrollToTopBtn.classList.remove('animate-bounce');
+        }, 1000);
+    });
+    
+    function showLoading() {
+        loadingIndicator.classList.remove('hidden');
+        loadingIndicator.classList.add('animate-fadeIn');
+    }
+    
+    function hideLoading() {
+        loadingIndicator.classList.add('opacity-0');
+        setTimeout(() => {
+            loadingIndicator.classList.add('hidden');
+            loadingIndicator.classList.remove('opacity-0', 'animate-fadeIn');
+        }, 300);
+    }
+    
+    function setActiveButton(btn, isActive) {
+        if (isActive) {
+            btn.classList.add('text-primary-700', 'bg-primary-50/90', 'border-primary-200/80');
+            btn.classList.remove('bg-white/90', 'text-gray-700', 'border-gray-200/70');
+        } else {
+            btn.classList.remove('text-primary-700', 'bg-primary-50/90', 'border-primary-200/80');
+            btn.classList.add('bg-white/90', 'text-gray-700', 'border-gray-200/70');
+        }
+    }
+    
+    function showView(viewElement, hideElement) {
+        // Show loading
+        showLoading();
+        
+        // Fade out current view
+        hideElement.classList.add('opacity-0');
+        
+        setTimeout(() => {
+            hideElement.classList.add('hidden');
+            
+            // Small delay to simulate loading
+            setTimeout(() => {
+                // Hide loading and show new view
+                hideLoading();
+                
+                // Show and fade in the new view
+                viewElement.classList.remove('hidden');
+                viewElement.classList.add('opacity-0');
+                // Force reflow
+                void viewElement.offsetWidth;
+                viewElement.classList.remove('opacity-0');
+            }, 300); // Simulate loading time
+        }, 150);
+    }
+    
+    // Add transition styles for smooth fade effect
+    tableView.classList.add('transition-opacity', 'duration-150');
+    cardView.classList.add('transition-opacity', 'duration-150');
+    loadingIndicator.classList.add('transition-opacity', 'duration-300');
+    
+    // Set default view - table view by default
+    // Check localStorage for user preference
+    const savedView = localStorage.getItem('preferredView');
+    
+    if (savedView === 'card') {
+        setActiveButton(cardViewBtn, true);
+        setActiveButton(tableViewBtn, false);
+        cardView.classList.remove('hidden');
+        tableView.classList.add('hidden');
+    } else {
+        // Default to table view
+        setActiveButton(tableViewBtn, true);
+        setActiveButton(cardViewBtn, false);
+        tableView.classList.remove('hidden');
+        cardView.classList.add('hidden');
+    }
+    
+    // Toggle between views
+    tableViewBtn.addEventListener('click', function() {
+        setActiveButton(tableViewBtn, true);
+        setActiveButton(cardViewBtn, false);
+        showView(tableView, cardView);
+        localStorage.setItem('preferredView', 'table');
+    });
+    
+    cardViewBtn.addEventListener('click', function() {
+        setActiveButton(cardViewBtn, true);
+        setActiveButton(tableViewBtn, false);
+        showView(cardView, tableView);
+        localStorage.setItem('preferredView', 'card');
+    });
+    
+    // Refresh button functionality
+    refreshBtn.addEventListener('click', function() {
+        // Add spin animation to refresh icon
+        const refreshIcon = refreshBtn.querySelector('i');
+        refreshIcon.classList.add('animate-spin');
+        
+        // Show loading indicator
+        showLoading();
+        
+        // Simulate refresh delay
+        setTimeout(() => {
+            // Reload the current page
+            window.location.reload();
+        }, 500);
+    });
+    
+    // Search functionality
+    playerSearch.addEventListener('input', function() {
+        const searchTerm = playerSearch.value.toLowerCase();
+        
+        // Show brief loading animation for better UX
+        if (searchTerm.length > 0) {
+            showLoading();
+            setTimeout(hideLoading, 300);
+        }
+        
+        // For card view
+        const cards = cardView.querySelectorAll('.glass-morphism');
+        cards.forEach(card => {
+            if (card.classList.contains('no-results')) return; // Skip no results message
+            
+            const playerName = card.querySelector('h3').textContent.toLowerCase();
+            const teamName = card.querySelector('.text-sm.text-gray-500').textContent.toLowerCase();
+            
+            if (playerName.includes(searchTerm) || teamName.includes(searchTerm)) {
+                card.classList.remove('hidden');
+                // Animate back in
+                card.style.opacity = 0;
+                setTimeout(() => {
+                    card.style.opacity = 1;
+                }, 50);
+            } else {
+                // Animate out
+                card.style.opacity = 0;
+                setTimeout(() => {
+                    card.classList.add('hidden');
+                }, 200);
+            }
+        });
+        
+        // For table view
+        const rows = tableView.querySelectorAll('tbody tr');
+        rows.forEach(row => {
+            if (row.cells.length === 1) return; // Skip the "No players found" row
+            
+            const playerName = row.cells[0].textContent.toLowerCase();
+            const teamName = row.cells[1].textContent.toLowerCase();
+            
+            if (playerName.includes(searchTerm) || teamName.includes(searchTerm)) {
+                row.classList.remove('hidden');
+            } else {
+                row.classList.add('hidden');
+            }
+        });
+        
+        // Show "no results" message if needed
+        const visibleCards = [...cards].filter(card => !card.classList.contains('hidden') && !card.classList.contains('no-results'));
+        if (visibleCards.length === 0 && cardView.classList.contains('hidden') === false) {
+            let noResults = cardView.querySelector('.no-results');
+            if (!noResults) {
+                noResults = document.createElement('div');
+                noResults.className = 'col-span-full glass-morphism p-5 rounded-xl shadow-sm border border-blue-100/50 text-blue-800 no-results animate-fadeIn';
+                noResults.innerHTML = `
+                    <div class="flex items-center">
+                        <i class="fas fa-search mr-3 text-xl text-blue-500"></i>
+                        <span>No players found matching "${searchTerm}"</span>
+                    </div>
+                `;
+                cardView.appendChild(noResults);
+            } else {
+                noResults.querySelector('span').textContent = `No players found matching "${searchTerm}"`;
+                noResults.classList.remove('hidden');
+            }
+        } else {
+            const noResults = cardView.querySelector('.no-results');
+            if (noResults) {
+                noResults.classList.add('hidden');
+            }
+        }
+    });
+});
+</script>
+{% endblock %} 

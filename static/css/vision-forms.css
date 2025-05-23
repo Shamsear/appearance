@@ -1,0 +1,178 @@
+/* Vision OS-inspired Form Elements */
+
+.vision-ui input[type="text"], 
+.vision-ui input[type="email"], 
+.vision-ui input[type="password"],
+.vision-ui input[type="number"],
+.vision-ui input[type="date"],
+.vision-ui input[type="search"],
+.vision-ui select,
+.vision-ui textarea {
+    background-color: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    border: 1px solid rgba(209, 213, 219, 0.7);
+    border-radius: 0.75rem;
+    padding: 0.625rem 1rem;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    transition: all 0.15s ease-in-out;
+}
+
+.vision-ui input[type="text"]:focus, 
+.vision-ui input[type="email"]:focus, 
+.vision-ui input[type="password"]:focus,
+.vision-ui input[type="number"]:focus,
+.vision-ui input[type="date"]:focus,
+.vision-ui input[type="search"]:focus,
+.vision-ui select:focus,
+.vision-ui textarea:focus {
+    border-color: var(--vision-primary, #007AFF);
+    box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.2);
+    outline: none;
+}
+
+.vision-ui input[type="text"]:hover, 
+.vision-ui input[type="email"]:hover, 
+.vision-ui input[type="password"]:hover,
+.vision-ui input[type="number"]:hover,
+.vision-ui input[type="date"]:hover,
+.vision-ui input[type="search"]:hover,
+.vision-ui select:hover,
+.vision-ui textarea:hover {
+    border-color: rgba(209, 213, 219, 0.9);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.07);
+}
+
+/* Custom checkboxes and radio buttons */
+.vision-ui input[type="checkbox"], 
+.vision-ui input[type="radio"] {
+    border-radius: 0.375rem;
+    border-color: rgba(209, 213, 219, 0.8);
+    color: var(--vision-primary, #007AFF);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    transition: all 0.15s ease-in-out;
+}
+
+.vision-ui input[type="checkbox"]:focus, 
+.vision-ui input[type="radio"]:focus {
+    border-color: rgba(0, 122, 255, 0.3);
+    box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.2);
+}
+
+/* Buttons */
+.vision-ui .btn {
+    border-radius: 0.75rem;
+    padding: 0.5rem 1rem;
+    font-weight: 500;
+    transition: all 0.15s ease-in-out;
+}
+
+.vision-ui .btn-primary {
+    background-image: linear-gradient(to bottom right, var(--vision-primary, #007AFF), var(--vision-primary-dark, #0055CC));
+    color: white;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.vision-ui .btn-primary:hover {
+    background-image: linear-gradient(to bottom right, var(--vision-primary-light, #55A6FF), var(--vision-primary, #007AFF));
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+    transform: translateY(-1px);
+}
+
+.vision-ui .btn-secondary {
+    background-color: rgba(243, 244, 246, 0.8);
+    color: rgba(75, 85, 99, 1);
+}
+
+.vision-ui .btn-secondary:hover {
+    background-color: rgba(229, 231, 235, 0.9);
+    color: rgba(55, 65, 81, 1);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.05);
+    transform: translateY(-1px);
+}
+
+/* Form error states */
+.vision-ui .form-error input, 
+.vision-ui .form-error select, 
+.vision-ui .form-error textarea {
+    border-color: rgba(239, 68, 68, 0.5);
+}
+
+.vision-ui .form-error input:focus, 
+.vision-ui .form-error select:focus, 
+.vision-ui .form-error textarea:focus {
+    border-color: rgba(239, 68, 68, 0.8);
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+}
+
+.vision-ui .error-message {
+    color: rgba(239, 68, 68, 1);
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+    animation: floatIn 0.5s ease-out forwards;
+}
+
+/* Form labels */
+.vision-ui label {
+    font-weight: 500;
+    color: rgba(75, 85, 99, 1);
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+/* Form groups */
+.vision-ui .form-group {
+    margin-bottom: 1.25rem;
+}
+
+/* Custom select styling */
+.vision-ui select {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.75rem center;
+    background-repeat: no-repeat;
+    background-size: 1.25em 1.25em;
+    padding-right: 2.5rem;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    appearance: none;
+}
+
+/* File inputs */
+.vision-ui input[type="file"] {
+    border: none;
+    background: none;
+    padding: 0;
+}
+
+.vision-ui .file-input-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+.vision-ui .file-input-label {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 1rem;
+    border-radius: 0.75rem;
+    background-color: rgba(243, 244, 246, 0.8);
+    color: rgba(75, 85, 99, 1);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease-in-out;
+}
+
+.vision-ui .file-input-label:hover {
+    background-color: rgba(229, 231, 235, 0.9);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.vision-ui .file-input-text {
+    margin-left: 0.5rem;
+}
+
+/* Placeholder text */
+.vision-ui ::placeholder {
+    color: rgba(156, 163, 175, 0.7);
+    opacity: 1;
+} 
