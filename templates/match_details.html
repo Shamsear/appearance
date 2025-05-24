@@ -1,0 +1,339 @@
+{% extends "base.html" %}
+
+{% block title %}Match Details - Football Player Tracker{% endblock %}
+
+{% block content %}
+<style>
+    /* Vision OS inspired additional styling */
+    .glass-card {
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        transition: all 0.3s ease;
+    }
+    
+    .shadow-vision {
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.04), 
+                    0 4px 8px rgba(0, 0, 0, 0.02);
+    }
+    
+    .hover-lift {
+        transition: all 0.3s ease;
+    }
+    
+    .hover-lift:hover {
+        transform: translateY(-2px);
+    }
+    
+    .hover-lift:active {
+        transform: translateY(1px);
+    }
+</style>
+
+<div class="mb-8 animate-fadeIn">
+    <div class="glass-morphism rounded-2xl p-6 mb-6 shadow-vision">
+        <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-800">
+                <span class="text-primary-600">Match</span> Details
+            </h1>
+            <div class="flex flex-col sm:flex-row gap-3">
+                <a href="{{ url_for('edit_match_appearances', match_id=match.id) }}" class="inline-flex items-center justify-center px-4 py-2.5 bg-primary-600 text-white font-medium rounded-xl shadow-sm hover:bg-primary-700 transition-all duration-200 hover-lift focus:outline-none focus:ring-2 focus:ring-primary-500/50">
+                    <i class="fas fa-edit mr-2"></i> Edit Appearances
+                </a>
+                <a href="{{ url_for('matches') }}" class="inline-flex items-center justify-center px-4 py-2.5 bg-white/90 text-gray-700 font-medium rounded-xl border border-gray-200/70 shadow-sm hover:bg-gray-50/90 transition-all duration-200 hover-lift">
+                    <i class="fas fa-arrow-left mr-2"></i> Back to Matches
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Match Overview Card -->
+    <div class="glass-morphism rounded-2xl shadow-vision mb-8 overflow-hidden animate-fadeIn" style="animation-delay: 100ms;">
+        <div class="p-6 border-b border-gray-100/60">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+                <div class="flex flex-col items-center md:items-start text-center md:text-left">
+                    <div class="w-12 h-12 bg-primary-50/90 rounded-full flex items-center justify-center mb-3 shadow-sm">
+                        <i class="fas fa-futbol text-lg text-primary-500"></i>
+                    </div>
+                    <div class="text-xl font-semibold text-gray-800 mb-1">{{ match.home_team.name }}</div>
+                    <div class="text-sm text-gray-500">Home Team</div>
+                </div>
+                
+                <div class="flex flex-col items-center">
+                    <div class="flex items-center justify-center w-16 h-16 rounded-full bg-primary-100/80 text-primary-700 font-semibold text-lg mb-2 shadow-sm border border-primary-200/50">VS</div>
+                    <div class="text-sm font-medium text-primary-600">{{ match.match_day }}</div>
+                </div>
+                
+                <div class="flex flex-col items-center md:items-end text-center md:text-right">
+                    <div class="w-12 h-12 bg-primary-50/90 rounded-full flex items-center justify-center mb-3 shadow-sm">
+                        <i class="fas fa-futbol text-lg text-primary-500"></i>
+                    </div>
+                    <div class="text-xl font-semibold text-gray-800 mb-1">{{ match.away_team.name }}</div>
+                    <div class="text-sm text-gray-500">Away Team</div>
+                </div>
+            </div>
+        </div>
+        <div class="p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white/40">
+            <div class="bg-white/70 rounded-xl p-3 text-center backdrop-blur-sm shadow-sm">
+                <div class="text-xs text-gray-500 mb-1">Match Date</div>
+                <div class="text-base font-medium text-gray-800">{{ match.date }}</div>
+            </div>
+            
+            <div class="bg-white/70 rounded-xl p-3 text-center backdrop-blur-sm shadow-sm">
+                <div class="text-xs text-gray-500 mb-1">Total Players</div>
+                <div class="text-base font-medium text-gray-800">{{ home_appearances|length + away_appearances|length }}</div>
+            </div>
+            
+            <div class="bg-white/70 rounded-xl p-3 text-center backdrop-blur-sm shadow-sm">
+                <div class="text-xs text-gray-500 mb-1">Created On</div>
+                <div class="text-base font-medium text-gray-800">{{ match.created_at }}</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Player Appearances -->
+    <div class="glass-morphism rounded-2xl p-5 mb-6 shadow-sm animate-fadeIn" style="animation-delay: 200ms;">
+        <h2 class="text-xl font-bold text-gray-800 flex items-center mb-1">
+            <i class="fas fa-users text-primary-500 mr-2.5"></i> Player Appearances
+        </h2>
+        <p class="text-gray-600 text-sm mb-0">Players who appeared in this match for both teams</p>
+    </div>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <!-- Home Team Card -->
+        <div class="glass-card rounded-2xl shadow-sm overflow-hidden flex flex-col h-full animate-fadeIn" style="animation-delay: 300ms;">
+            <div class="px-6 py-4 border-b border-gray-100/60 flex items-center">
+                <div class="w-12 h-12 rounded-full bg-green-100/90 text-green-700 flex items-center justify-center mr-3 shadow-sm">
+                    <i class="fas fa-users"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-800">{{ match.home_team.name }} Players</h3>
+            </div>
+            <div class="flex-1">
+                {% if home_appearances %}
+                    <ul class="divide-y divide-gray-100/60">
+                        {% for appearance in home_appearances %}
+                        <li class="px-6 py-4 hover:bg-white/40 transition-all duration-200">
+                            <div class="flex justify-between items-center">
+                                <div class="font-medium text-gray-800">{{ appearance.player.name }}</div>
+                                <div class="inline-flex items-center px-3 py-1.5 bg-green-50/90 text-green-700 text-sm font-medium rounded-lg shadow-sm">
+                                    <i class="fas fa-check-circle mr-1.5"></i> Appeared
+                                </div>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <div class="flex flex-col items-center justify-center py-10 px-4 text-gray-600">
+                        <div class="w-16 h-16 bg-gray-100/80 rounded-full flex items-center justify-center mb-3 text-gray-400">
+                            <i class="fas fa-user-slash text-xl"></i>
+                        </div>
+                        <p>No players were found for the home team.</p>
+                    </div>
+                {% endif %}
+            </div>
+            <div class="px-6 py-3 bg-white/30 text-sm font-medium text-gray-700 backdrop-blur-sm border-t border-gray-100/60">
+                Total: {{ home_appearances|length }} players
+            </div>
+        </div>
+        
+        <!-- Away Team Card -->
+        <div class="glass-card rounded-2xl shadow-sm overflow-hidden flex flex-col h-full animate-fadeIn" style="animation-delay: 400ms;">
+            <div class="px-6 py-4 border-b border-gray-100/60 flex items-center">
+                <div class="w-12 h-12 rounded-full bg-green-100/90 text-green-700 flex items-center justify-center mr-3 shadow-sm">
+                    <i class="fas fa-users"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-800">{{ match.away_team.name }} Players</h3>
+            </div>
+            <div class="flex-1">
+                {% if away_appearances %}
+                    <ul class="divide-y divide-gray-100/60">
+                        {% for appearance in away_appearances %}
+                        <li class="px-6 py-4 hover:bg-white/40 transition-all duration-200">
+                            <div class="flex justify-between items-center">
+                                <div class="font-medium text-gray-800">{{ appearance.player.name }}</div>
+                                <div class="inline-flex items-center px-3 py-1.5 bg-green-50/90 text-green-700 text-sm font-medium rounded-lg shadow-sm">
+                                    <i class="fas fa-check-circle mr-1.5"></i> Appeared
+                                </div>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <div class="flex flex-col items-center justify-center py-10 px-4 text-gray-600">
+                        <div class="w-16 h-16 bg-gray-100/80 rounded-full flex items-center justify-center mb-3 text-gray-400">
+                            <i class="fas fa-user-slash text-xl"></i>
+                        </div>
+                        <p>No players were found for the away team.</p>
+                    </div>
+                {% endif %}
+            </div>
+            <div class="px-6 py-3 bg-white/30 text-sm font-medium text-gray-700 backdrop-blur-sm border-t border-gray-100/60">
+                Total: {{ away_appearances|length }} players
+            </div>
+        </div>
+    </div>
+    
+    <!-- Unmatched Players Section -->
+    {% if home_unmatched or away_unmatched %}
+    <div class="glass-morphism rounded-2xl p-5 mb-6 shadow-sm animate-fadeIn" style="animation-delay: 500ms;">
+        <h2 class="text-xl font-bold text-gray-800 flex items-center mb-1">
+            <i class="fas fa-question-circle text-amber-500 mr-2.5"></i> Unmatched Players
+        </h2>
+        <p class="text-gray-600 text-sm mb-0">Players that could not be matched to the database</p>
+    </div>
+    
+    <div class="glass-morphism rounded-2xl p-5 mb-6 shadow-sm border-l-4 border-blue-400 animate-fadeIn" style="animation-delay: 550ms;">
+        <div class="flex items-center">
+            <div class="flex-shrink-0 w-12 h-12 rounded-full bg-blue-100/80 text-blue-600 flex items-center justify-center mr-4 shadow-sm">
+                <i class="fas fa-info-circle text-xl"></i>
+            </div>
+            <div>
+                <h4 class="text-base font-semibold text-gray-800 mb-1">Unmatched Player Names</h4>
+                <p class="text-gray-600 mb-0">These player names could not be matched to players in the database. You can edit match appearances to fix this.</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <!-- Home Team Unmatched Card -->
+        <div class="glass-card rounded-2xl shadow-sm overflow-hidden flex flex-col h-full animate-fadeIn" style="animation-delay: 600ms;">
+            <div class="px-6 py-4 border-b border-gray-100/60 flex items-center">
+                <div class="w-12 h-12 rounded-full bg-amber-100/90 text-amber-700 flex items-center justify-center mr-3 shadow-sm">
+                    <i class="fas fa-question-circle"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-800">{{ match.home_team.name }} Unmatched</h3>
+            </div>
+            <div class="flex-1">
+                {% if home_unmatched %}
+                    <ul class="divide-y divide-gray-100/60">
+                        {% for player in home_unmatched %}
+                        <li class="px-6 py-4 hover:bg-white/40 transition-all duration-200">
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <span class="font-medium text-gray-800">{{ player.name }}</span>
+                                    {% if player.occurrence_count > 1 %}
+                                    <span class="inline-flex items-center px-2.5 py-1 ml-2 bg-gray-100/80 text-gray-600 text-xs font-medium rounded-lg">
+                                        {{ player.occurrence_count }} occurrences
+                                    </span>
+                                    {% endif %}
+                                </div>
+                                <div class="inline-flex items-center px-3 py-1.5 bg-amber-50/90 text-amber-700 text-sm font-medium rounded-lg shadow-sm">
+                                    <i class="fas fa-exclamation-triangle mr-1.5"></i> Unmatched
+                                </div>
+                            </div>
+                            <div class="text-xs text-gray-500 mt-2 bg-gray-50/60 p-2 rounded-lg">
+                                <span class="inline-block mr-3"><i class="far fa-calendar-alt mr-1"></i> First: {{ player.first_seen }}</span> 
+                                <span><i class="far fa-calendar-alt mr-1"></i> Last: {{ player.last_seen }}</span>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <div class="flex flex-col items-center justify-center py-10 px-4 text-gray-600">
+                        <div class="w-16 h-16 bg-green-100/80 rounded-full flex items-center justify-center mb-3 text-green-500">
+                            <i class="fas fa-check-circle text-xl"></i>
+                        </div>
+                        <p>No unmatched player names for the home team.</p>
+                    </div>
+                {% endif %}
+            </div>
+            <div class="px-6 py-3 bg-white/30 text-sm font-medium text-gray-700 backdrop-blur-sm border-t border-gray-100/60">
+                Total: {{ home_unmatched|length }} unmatched names
+            </div>
+        </div>
+        
+        <!-- Away Team Unmatched Card -->
+        <div class="glass-card rounded-2xl shadow-sm overflow-hidden flex flex-col h-full animate-fadeIn" style="animation-delay: 700ms;">
+            <div class="px-6 py-4 border-b border-gray-100/60 flex items-center">
+                <div class="w-12 h-12 rounded-full bg-amber-100/90 text-amber-700 flex items-center justify-center mr-3 shadow-sm">
+                    <i class="fas fa-question-circle"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-800">{{ match.away_team.name }} Unmatched</h3>
+            </div>
+            <div class="flex-1">
+                {% if away_unmatched %}
+                    <ul class="divide-y divide-gray-100/60">
+                        {% for player in away_unmatched %}
+                        <li class="px-6 py-4 hover:bg-white/40 transition-all duration-200">
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <span class="font-medium text-gray-800">{{ player.name }}</span>
+                                    {% if player.occurrence_count > 1 %}
+                                    <span class="inline-flex items-center px-2.5 py-1 ml-2 bg-gray-100/80 text-gray-600 text-xs font-medium rounded-lg">
+                                        {{ player.occurrence_count }} occurrences
+                                    </span>
+                                    {% endif %}
+                                </div>
+                                <div class="inline-flex items-center px-3 py-1.5 bg-amber-50/90 text-amber-700 text-sm font-medium rounded-lg shadow-sm">
+                                    <i class="fas fa-exclamation-triangle mr-1.5"></i> Unmatched
+                                </div>
+                            </div>
+                            <div class="text-xs text-gray-500 mt-2 bg-gray-50/60 p-2 rounded-lg">
+                                <span class="inline-block mr-3"><i class="far fa-calendar-alt mr-1"></i> First: {{ player.first_seen }}</span> 
+                                <span><i class="far fa-calendar-alt mr-1"></i> Last: {{ player.last_seen }}</span>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <div class="flex flex-col items-center justify-center py-10 px-4 text-gray-600">
+                        <div class="w-16 h-16 bg-green-100/80 rounded-full flex items-center justify-center mb-3 text-green-500">
+                            <i class="fas fa-check-circle text-xl"></i>
+                        </div>
+                        <p>No unmatched player names for the away team.</p>
+                    </div>
+                {% endif %}
+            </div>
+            <div class="px-6 py-3 bg-white/30 text-sm font-medium text-gray-700 backdrop-blur-sm border-t border-gray-100/60">
+                Total: {{ away_unmatched|length }} unmatched names
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Scroll to Top Button -->
+<button id="scroll-to-top" class="fixed bottom-6 right-6 w-12 h-12 rounded-full bg-white/80 backdrop-blur-md shadow-vision flex items-center justify-center text-primary-600 border border-gray-100/50 opacity-0 invisible transition-all duration-300 hover:bg-primary-50/90 hover:text-primary-700 hover:scale-110 active:scale-95">
+    <i class="fas fa-arrow-up"></i>
+</button>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const scrollToTopBtn = document.getElementById('scroll-to-top');
+    
+    // Show/hide scroll-to-top button based on scroll position
+    window.addEventListener('scroll', function() {
+        if (window.pageYOffset > 300) {
+            scrollToTopBtn.classList.remove('opacity-0', 'invisible');
+            scrollToTopBtn.classList.add('opacity-100');
+        } else {
+            scrollToTopBtn.classList.remove('opacity-100');
+            scrollToTopBtn.classList.add('opacity-0');
+            setTimeout(() => {
+                if (window.pageYOffset <= 300) {
+                    scrollToTopBtn.classList.add('invisible');
+                }
+            }, 300);
+        }
+    });
+    
+    // Scroll to top with animation when clicked
+    scrollToTopBtn.addEventListener('click', function() {
+        // Add bounce animation
+        scrollToTopBtn.classList.add('animate-bounce');
+        
+        // Smooth scroll to top
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
+        
+        // Remove bounce animation after scroll completes
+        setTimeout(() => {
+            scrollToTopBtn.classList.remove('animate-bounce');
+        }, 1000);
+    });
+});
+</script>
+{% endblock %} 

@@ -1,0 +1,2613 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Match Appearances - {{ match_day }}{% endblock %}
+
+{% block head %}
+<!-- Tailwind CSS styles for edit match appearances page -->
+<style>
+    /* Vision OS inspired additional styling for match appearances page */
+    .glass-card {
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        transition: all 0.3s ease;
+    }
+    
+    .glass-card:hover {
+        background: rgba(255, 255, 255, 0.8);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+    }
+    
+    /* We'll keep custom styles that aren't easily replicated with utility classes */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    @keyframes slideUp {
+        from { transform: translateY(20px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+    
+    @keyframes checkboxPulse {
+        0% { transform: scale(0.8); opacity: 0.8; }
+        50% { transform: scale(1.2); opacity: 1; }
+        100% { transform: scale(1); opacity: 1; }
+    }
+    
+    @keyframes fadeOut {
+        from { opacity: 1; transform: translateY(0); }
+        to { opacity: 0; transform: translateY(10px); }
+    }
+    
+    .animate-fade-in {
+        animation: fadeIn 0.3s ease;
+    }
+    
+    .animate-slide-up {
+        animation: slideUp 0.3s ease;
+    }
+    
+    .animate-pulse-check {
+        animation: checkboxPulse 0.3s ease;
+    }
+    
+    /* Custom checkbox */
+    .player-checkbox {
+        position: relative;
+        width: 1.25rem;
+        height: 1.25rem;
+        border-radius: 0.375rem;
+        border: 1px solid rgba(0, 0, 0, 0.2);
+        background: white;
+        appearance: none;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .player-checkbox:checked {
+        background-color: rgb(59, 130, 246);
+        border-color: rgb(59, 130, 246);
+        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+    }
+    
+    .player-checkbox:checked::after {
+        content: '✓';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: white;
+        font-size: 0.8rem;
+        font-weight: bold;
+        display: block;
+    }
+    
+    /* Styles for checked items */
+    .player-item.checked {
+        background-color: rgba(59, 130, 246, 0.05);
+    }
+    
+    /* Team badges */
+    .team-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.375rem;
+        font-size: 0.8rem;
+        font-weight: 500;
+        margin-left: 0.75rem;
+    }
+    
+    .team-badge.home {
+        background: rgba(25, 135, 84, 0.1);
+        color: rgb(25, 135, 84);
+    }
+    
+    .team-badge.away {
+        background: rgba(220, 53, 69, 0.1);
+        color: rgb(220, 53, 69);
+    }
+    
+    /* Shadow effects */
+    .shadow-vision {
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.04), 
+                    0 4px 8px rgba(0, 0, 0, 0.02);
+    }
+    
+    /* Hover lift effect */
+    .hover-lift {
+        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    
+    .hover-lift:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Player suggestion item styles */
+    .player-suggestion {
+        padding: 0.75rem 1rem;
+        cursor: pointer;
+        border-bottom: 1px solid rgba(229, 231, 235, 0.6);
+        transition: all 0.2s ease;
+    }
+    
+    .player-suggestion:last-child {
+        border-bottom: none;
+    }
+    
+    .player-suggestion:hover {
+        background-color: rgba(243, 244, 246, 0.8);
+    }
+    
+    .player-suggestion.selected {
+        background-color: rgba(59, 130, 246, 0.1);
+    }
+    
+    .player-suggestion.home-team {
+        border-left: 3px solid rgb(25, 135, 84);
+    }
+    
+    .player-suggestion.away-team {
+        border-left: 3px solid rgb(220, 53, 69);
+    }
+    
+    .player-suggestion.other-team {
+        border-left: 3px solid rgb(245, 158, 11);
+    }
+    
+    .team-indicator {
+        font-size: 0.75rem;
+        opacity: 0.8;
+        margin-left: 0.5rem;
+    }
+    
+    .team-indicator.home {
+        color: rgb(25, 135, 84);
+    }
+    
+    .team-indicator.away {
+        color: rgb(220, 53, 69);
+    }
+    
+    .team-indicator.other {
+        color: rgb(245, 158, 11);
+    }
+    
+    /* Fix for player suggestions dropdown */
+    #playerSuggestions {
+        position: absolute;
+        z-index: 9999 !important;
+        background-color: white;
+        width: 100%;
+        margin-top: 4px;
+        border-radius: 0.75rem;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        max-height: 240px;
+        overflow-y: auto;
+    }
+    
+    #playerSuggestions.hidden {
+        display: none !important;
+    }
+    
+    #playerSuggestions:not(.hidden) {
+        display: block !important;
+    }
+    
+    @keyframes pulse {
+        0% { background-color: #f0f9ff; }
+        50% { background-color: #e0f2fe; }
+        100% { background-color: #f0f9ff; }
+    }
+    
+    @keyframes scaleIn {
+        from { transform: scale(0.9); opacity: 0; }
+        to { transform: scale(1); opacity: 1; }
+    }
+    
+    @keyframes scaleOut {
+        from { transform: scale(1); opacity: 1; }
+        to { transform: scale(0.9); opacity: 0; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-4 animate-fadeIn">
+    <div class="glass-morphism rounded-2xl p-6 mb-6 shadow-vision">
+        <div class="flex justify-between items-center flex-wrap">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-800 mb-4 md:mb-0">
+                <span class="text-primary-600">Edit</span> Match Appearances
+            </h1>
+            <div class="flex gap-3">
+                <a href="{{ url_for('match_details', match_id=match_id) }}" class="inline-flex items-center px-4 py-2.5 bg-white/90 text-gray-700 rounded-xl border border-gray-200/70 font-medium text-sm transition-all duration-200 hover:bg-gray-50/80 hover-lift">
+                    <i class="fas fa-arrow-left mr-2"></i> Back to Match Details
+                </a>
+                <a href="{{ url_for('matches') }}" class="inline-flex items-center px-4 py-2.5 bg-white/90 text-gray-700 rounded-xl border border-gray-200/70 font-medium text-sm transition-all duration-200 hover:bg-gray-50/80 hover-lift">
+                    <i class="fas fa-list mr-2"></i> All Matches
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="glass-morphism rounded-2xl p-5 mb-6 flex items-center bg-blue-50/50 text-blue-600 border border-blue-100/80 shadow-sm">
+        <div class="w-10 h-10 bg-blue-100/80 rounded-xl flex items-center justify-center text-blue-600 mr-4">
+            <i class="fas fa-info-circle text-xl"></i>
+        </div>
+        <div class="text-sm md:text-base">Select which players appeared in this match. Changes are saved automatically.</div>
+    </div>
+    
+    <div class="glass-morphism rounded-2xl shadow-vision border border-gray-100/80 mb-8 overflow-hidden backdrop-blur-md">
+        <div class="flex items-center p-5 border-b border-gray-100/80">
+            <div class="flex items-center justify-center w-10 h-10 rounded-xl bg-primary-50/90 text-primary-600 mr-3">
+                <i class="fas fa-futbol"></i>
+            </div>
+            <h2 class="text-xl font-semibold text-gray-800 m-0">Match Information</h2>
+        </div>
+        <div class="p-5 grid grid-cols-1 sm:grid-cols-3 gap-6">
+            <div class="flex flex-col bg-white/50 p-4 rounded-xl border border-gray-100/60 shadow-sm">
+                <div class="text-sm text-gray-500 mb-1">Match Day</div>
+                <div class="font-medium text-gray-800">{{ match_day }}</div>
+            </div>
+            
+            <div class="flex flex-col bg-white/50 p-4 rounded-xl border border-gray-100/60 shadow-sm">
+                <div class="text-sm text-gray-500 mb-1">Date</div>
+                <div class="font-medium text-gray-800">{{ match_date }}</div>
+            </div>
+            
+            <div class="flex flex-col bg-white/50 p-4 rounded-xl border border-gray-100/60 shadow-sm">
+                <div class="text-sm text-gray-500 mb-1">Teams</div>
+                <div class="font-medium text-gray-800">{{ home_team_name }} vs {{ away_team_name }}</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <!-- Home Team Players -->
+        <div class="glass-morphism rounded-2xl shadow-vision border border-gray-100/80 overflow-hidden backdrop-blur-md flex flex-col h-full animate-fadeIn" style="animation-delay: 100ms;">
+            <div class="flex items-center justify-between p-5 border-b border-gray-100/80" data-team="home">
+                <div class="flex items-center">
+                    <div class="flex items-center justify-center w-10 h-10 rounded-xl bg-green-50/90 text-green-600 mr-3">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-800 m-0">{{ home_team_name }} Players</h3>
+                </div>
+                <div class="flex gap-2">
+                    <button class="px-3 py-2.5 bg-white/90 text-gray-700 rounded-lg border border-gray-200/70 text-sm font-medium transition-all duration-200 hover:bg-gray-50/90 hover-lift select-all-btn" data-team="home">Select All</button>
+                    <button class="px-3 py-2.5 bg-white/90 text-gray-700 rounded-lg border border-gray-200/70 text-sm font-medium transition-all duration-200 hover:bg-gray-50/90 hover-lift deselect-all-btn" data-team="home">Deselect All</button>
+                </div>
+            </div>
+            <div class="p-5">
+                <div class="relative mb-5">
+                    <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                    <input type="text" class="w-full py-3 pl-10 pr-4 rounded-xl border border-gray-200/70 bg-white/80 text-sm focus:outline-none focus:ring-2 focus:ring-primary-100 focus:border-primary-500 player-search" placeholder="Search players..." data-team="home">
+                </div>
+                <div class="border border-gray-100/80 rounded-xl bg-white/50 overflow-y-auto max-h-[340px] shadow-sm">
+                    <div class="player-list" id="home-player-list">
+                        {% for player in home_players %}
+                        <div class="player-item border-b border-gray-100/80 last:border-b-0">
+                            <label class="flex items-center py-3 px-4 w-full cursor-pointer hover:bg-gray-50/90 transition-colors">
+                                <input class="player-checkbox player-check mr-4" type="checkbox" 
+                                       id="player-{{ player.id }}" 
+                                       data-player-id="{{ player.id }}"
+                                       data-team="home"
+                                       {% if player.id in appeared_player_ids %}checked{% endif %}>
+                                <span class="player-name font-medium text-gray-700">{{ player.name }}</span>
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            <div class="px-5 py-4 mt-auto border-t border-gray-100/80 text-sm text-gray-500 bg-gray-50/50">
+                <span id="home-selected-count" class="selected-count font-semibold text-primary-600 mr-1">0</span> players selected
+            </div>
+        </div>
+        
+        <!-- Away Team Players -->
+        <div class="glass-morphism rounded-2xl shadow-vision border border-gray-100/80 overflow-hidden backdrop-blur-md flex flex-col h-full animate-fadeIn" style="animation-delay: 200ms;">
+            <div class="flex items-center justify-between p-5 border-b border-gray-100/80" data-team="away">
+                <div class="flex items-center">
+                    <div class="flex items-center justify-center w-10 h-10 rounded-xl bg-red-50/90 text-red-600 mr-3">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-800 m-0">{{ away_team_name }} Players</h3>
+                </div>
+                <div class="flex gap-2">
+                    <button class="px-3 py-2.5 bg-white/90 text-gray-700 rounded-lg border border-gray-200/70 text-sm font-medium transition-all duration-200 hover:bg-gray-50/90 hover-lift select-all-btn" data-team="away">Select All</button>
+                    <button class="px-3 py-2.5 bg-white/90 text-gray-700 rounded-lg border border-gray-200/70 text-sm font-medium transition-all duration-200 hover:bg-gray-50/90 hover-lift deselect-all-btn" data-team="away">Deselect All</button>
+                </div>
+            </div>
+            <div class="p-5">
+                <div class="relative mb-5">
+                    <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                    <input type="text" class="w-full py-3 pl-10 pr-4 rounded-xl border border-gray-200/70 bg-white/80 text-sm focus:outline-none focus:ring-2 focus:ring-primary-100 focus:border-primary-500 player-search" placeholder="Search players..." data-team="away">
+                </div>
+                <div class="border border-gray-100/80 rounded-xl bg-white/50 overflow-y-auto max-h-[340px] shadow-sm">
+                    <div class="player-list" id="away-player-list">
+                        {% for player in away_players %}
+                        <div class="player-item border-b border-gray-100/80 last:border-b-0">
+                            <label class="flex items-center py-3 px-4 w-full cursor-pointer hover:bg-gray-50/90 transition-colors">
+                                <input class="player-checkbox player-check mr-4" type="checkbox" 
+                                       id="player-{{ player.id }}" 
+                                       data-player-id="{{ player.id }}"
+                                       data-team="away"
+                                       {% if player.id in appeared_player_ids %}checked{% endif %}>
+                                <span class="player-name font-medium text-gray-700">{{ player.name }}</span>
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            <div class="px-5 py-4 mt-auto border-t border-gray-100/80 text-sm text-gray-500 bg-gray-50/50">
+                <span id="away-selected-count" class="selected-count font-semibold text-primary-600 mr-1">0</span> players selected
+            </div>
+        </div>
+    </div>
+    
+    <!-- Unmatched Players Sections - Split by team -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <!-- Home Team Unmatched Players -->
+        <div class="unmatched-section animate-fadeIn" style="animation-delay: 300ms;" data-team="home">
+            <div class="glass-morphism rounded-2xl p-5 mb-4 shadow-vision border border-gray-100/80">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <h3 class="text-xl font-semibold text-gray-800 flex items-center">
+                        <div class="flex items-center justify-center w-9 h-9 rounded-xl bg-yellow-50/90 text-yellow-600 mr-3">
+                <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        {{ home_team_name }} Unmatched Players
+            </h3>
+                    <button class="inline-flex items-center justify-center px-4 py-2.5 bg-white/90 text-gray-700 rounded-xl border border-gray-200/70 font-medium text-sm transition-all duration-200 hover:bg-gray-50/90 hover-lift add-unmatched-player-btn" data-team="home" data-modal-target="addPlayerModal">
+                        <i class="fas fa-plus mr-2"></i> Add Player
+            </button>
+                </div>
+        </div>
+        
+            <div class="glass-morphism rounded-2xl border border-green-100/80 shadow-vision overflow-hidden unmatched-container" id="home-unmatched-container">
+                <div class="bg-green-50/50 p-5">
+                    {% set home_unmatched = unmatched_players|selectattr('team', 'equalto', 'home')|list %}
+                    {% if home_unmatched|length > 0 %}
+                        <div class="grid grid-cols-1 gap-3">
+                            {% for player in home_unmatched %}
+                            <div class="unmatched-player flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-white rounded-xl shadow-sm border border-gray-100/80 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5" data-player-id="{{ player.id }}" data-player-name="{{ player.name }}" data-team="{{ player.team }}" data-occurrence-count="{{ player.occurrence_count|default(1) }}">
+                                <div class="flex items-center">
+                                    <span class="unmatched-player-name font-medium text-gray-700">{{ player.name }}</span>
+                                    <span class="team-badge {{ player.team }}">{{ player.team|capitalize }}</span>
+                                    {% if player.occurrence_count and player.occurrence_count > 1 %}
+                                    <span class="ml-2 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">×{{ player.occurrence_count }}</span>
+                                    {% endif %}
+                </div>
+                                <div class="flex flex-wrap gap-2 justify-end">
+                                    <button class="flex items-center justify-center p-2 bg-white/90 text-blue-600 rounded-lg border border-gray-200/70 text-sm transition-all duration-200 hover:bg-blue-50/90 hover-lift" onclick="editUnmatchedPlayer('{{ player.id }}', '{{ player.name }}', '{{ player.team }}')">
+                        <i class="fas fa-pen"></i>
+                    </button>
+                                    <button class="flex items-center justify-center p-2 bg-white/90 text-red-600 rounded-lg border border-gray-200/70 text-sm transition-all duration-200 hover:bg-red-50/90 hover-lift" onclick="deleteUnmatchedPlayer('{{ player.id }}', '{{ player.name }}')">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                                    <button class="flex items-center justify-center px-3 py-2 bg-white/90 text-gray-700 rounded-lg border border-gray-200/70 text-sm transition-all duration-200 hover:bg-gray-50/90 hover-lift" onclick="matchPlayer('{{ player.id }}', '{{ player.name }}', '{{ player.team }}')">
+                                        <i class="fas fa-link mr-1"></i> Match
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+                    {% else %}
+                        <div class="empty-state py-8 px-4 text-center bg-white/50 rounded-xl border border-gray-100/60">
+                            <div class="w-16 h-16 bg-gray-50/80 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <i class="fas fa-user-plus text-gray-400 text-xl"></i>
+                            </div>
+                            <p class="text-gray-500 mb-1">No unmatched players for {{ home_team_name }}</p>
+                            <p class="text-gray-400 text-sm">Click "Add Player" to add unmatched players</p>
+    </div>
+    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Away Team Unmatched Players -->
+        <div class="unmatched-section animate-fadeIn" style="animation-delay: 400ms;" data-team="away">
+            <div class="glass-morphism rounded-2xl p-5 mb-4 shadow-vision border border-gray-100/80">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <h3 class="text-xl font-semibold text-gray-800 flex items-center">
+                        <div class="flex items-center justify-center w-9 h-9 rounded-xl bg-yellow-50/90 text-yellow-600 mr-3">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        {{ away_team_name }} Unmatched Players
+                    </h3>
+                    <button class="inline-flex items-center justify-center px-4 py-2.5 bg-white/90 text-gray-700 rounded-xl border border-gray-200/70 font-medium text-sm transition-all duration-200 hover:bg-gray-50/90 hover-lift add-unmatched-player-btn" data-team="away" data-modal-target="addPlayerModal">
+                        <i class="fas fa-plus mr-2"></i> Add Player
+                    </button>
+                </div>
+    </div>
+    
+            <div class="glass-morphism rounded-2xl border border-red-100/80 shadow-vision overflow-hidden unmatched-container" id="away-unmatched-container">
+                <div class="bg-red-50/50 p-5">
+                    {% set away_unmatched = unmatched_players|selectattr('team', 'equalto', 'away')|list %}
+                    {% if away_unmatched|length > 0 %}
+                        <div class="grid grid-cols-1 gap-3">
+                            {% for player in away_unmatched %}
+                            <div class="unmatched-player flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-white rounded-xl shadow-sm border border-gray-100/80 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5" data-player-id="{{ player.id }}" data-player-name="{{ player.name }}" data-team="{{ player.team }}" data-occurrence-count="{{ player.occurrence_count|default(1) }}">
+                                <div class="flex items-center">
+                                    <span class="unmatched-player-name font-medium text-gray-700">{{ player.name }}</span>
+                                    <span class="team-badge {{ player.team }}">{{ player.team|capitalize }}</span>
+                                    {% if player.occurrence_count and player.occurrence_count > 1 %}
+                                    <span class="ml-2 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">×{{ player.occurrence_count }}</span>
+                                    {% endif %}
+                                </div>
+                                <div class="flex flex-wrap gap-2 justify-end">
+                                    <button class="flex items-center justify-center p-2 bg-white/90 text-blue-600 rounded-lg border border-gray-200/70 text-sm transition-all duration-200 hover:bg-blue-50/90 hover-lift" onclick="editUnmatchedPlayer('{{ player.id }}', '{{ player.name }}', '{{ player.team }}')">
+                                        <i class="fas fa-pen"></i>
+                                    </button>
+                                    <button class="flex items-center justify-center p-2 bg-white/90 text-red-600 rounded-lg border border-gray-200/70 text-sm transition-all duration-200 hover:bg-red-50/90 hover-lift" onclick="deleteUnmatchedPlayer('{{ player.id }}', '{{ player.name }}')">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                    <button class="flex items-center justify-center px-3 py-2 bg-white/90 text-gray-700 rounded-lg border border-gray-200/70 text-sm transition-all duration-200 hover:bg-gray-50/90 hover-lift" onclick="matchPlayer('{{ player.id }}', '{{ player.name }}', '{{ player.team }}')">
+                                        <i class="fas fa-link mr-1"></i> Match
+                                    </button>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="empty-state py-8 px-4 text-center bg-white/50 rounded-xl border border-gray-100/60">
+                            <div class="w-16 h-16 bg-gray-50/80 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <i class="fas fa-user-plus text-gray-400 text-xl"></i>
+                            </div>
+                            <p class="text-gray-500 mb-1">No unmatched players for {{ away_team_name }}</p>
+                            <p class="text-gray-400 text-sm">Click "Add Player" to add unmatched players</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="glass-morphism rounded-2xl p-4 mb-6 hidden items-center bg-green-50/50 text-green-600 border border-green-100/80 animate-fade-in save-success">
+        <div class="w-8 h-8 bg-green-100/80 rounded-lg flex items-center justify-center mr-3">
+            <i class="fas fa-check-circle"></i>
+        </div>
+        <div>Changes saved successfully!</div>
+    </div>
+    
+    <div class="glass-morphism rounded-2xl p-4 mb-6 hidden items-center bg-red-50/50 text-red-600 border border-red-100/80 animate-fade-in save-error">
+        <div class="w-8 h-8 bg-red-100/80 rounded-lg flex items-center justify-center mr-3">
+            <i class="fas fa-exclamation-circle"></i>
+        </div>
+        <div>Error saving changes: <span class="error-message"></span></div>
+    </div>
+    
+    <!-- Debug button - only visible during development -->
+    <div class="text-center mb-4" id="debug-section" style="display: none;">
+        <button id="debug-show-unmatched" class="bg-gray-200 px-3 py-2 rounded-lg text-sm">
+            Show All Unmatched Players (<span id="unmatched-count">0</span>)
+        </button>
+        <div id="debug-unmatched-list" class="mt-2 p-3 border border-gray-200 rounded-lg bg-white text-xs text-left" style="display: none; max-height: 200px; overflow-y: auto;"></div>
+    </div>
+</div>
+
+<!-- Add Player Modal -->
+<div id="addPlayerModal" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-gray-900 bg-opacity-50 backdrop-blur-sm transition-opacity"></div>
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="glass-morphism rounded-2xl shadow-vision border border-gray-100/80 overflow-hidden w-full max-w-md mx-auto transform transition-all duration-300 scale-95 opacity-0">
+            <div class="px-6 py-5 border-b border-gray-100/60 flex items-center justify-between">
+                <h5 class="text-xl font-semibold text-gray-800" id="addPlayerModalLabel">Add New Player</h5>
+                <button type="button" class="p-2 rounded-lg text-gray-400 hover:text-gray-500 hover:bg-gray-100/50 transition-all duration-200 modal-close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="addPlayerForm" class="add-player-form">
+                <div class="p-6">
+                    <div class="mb-5">
+                        <label for="playerName" class="block text-sm font-medium text-gray-700 mb-2">Player Name</label>
+                        <div class="relative">
+                            <input type="text" class="w-full py-3 px-4 rounded-xl border border-gray-200/70 bg-white/80 focus:outline-none focus:ring-2 focus:ring-primary-100 focus:border-primary-500 transition-all duration-200" id="playerName" name="name" required autocomplete="off">
+                            <div id="playerSuggestions" class="absolute z-[100] w-full mt-1 bg-white rounded-xl shadow-vision border border-gray-100/80 max-h-60 overflow-auto hidden"></div>
+                    </div>
+                        <div class="text-xs text-gray-500 mt-1">Start typing to see existing players</div>
+                    </div>
+                    <div class="mb-4">
+                        <label for="playerTeam" class="block text-sm font-medium text-gray-700 mb-2">Team</label>
+                        <select class="w-full py-3 px-4 rounded-xl border border-gray-200/70 bg-white/80 focus:outline-none focus:ring-2 focus:ring-primary-100 focus:border-primary-500 transition-all duration-200" id="playerTeam" name="team" required>
+                            <option value="home">{{ home_team_name }} (Home)</option>
+                            <option value="away">{{ away_team_name }} (Away)</option>
+                        </select>
+                    </div>
+                    <div id="playerWarning" class="p-3 rounded-lg bg-yellow-50/90 border border-yellow-100/80 text-yellow-700 text-sm mb-4 hidden">
+                        <div class="flex items-start">
+                            <i class="fas fa-exclamation-triangle text-yellow-500 mt-0.5 mr-2"></i>
+                            <div>
+                                <p class="font-medium">This player is from a different team!</p>
+                                <p class="mt-1">This will be marked as a warning in match details.</p>
+                </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="px-6 py-4 border-t border-gray-100/60 flex justify-end gap-3">
+                    <button type="button" class="px-5 py-2.5 bg-white/90 text-gray-700 rounded-xl border border-gray-200/70 font-medium text-sm transition-all duration-200 hover:bg-gray-50/90 hover-lift modal-close">Cancel</button>
+                    <button type="submit" class="px-5 py-2.5 bg-primary-600 text-white rounded-xl font-medium text-sm transition-all duration-200 hover:bg-primary-700 hover-lift">Add Player</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Player Modal -->
+<div id="editPlayerModal" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-gray-900 bg-opacity-50 backdrop-blur-sm transition-opacity"></div>
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="glass-morphism rounded-2xl shadow-vision border border-gray-100/80 overflow-hidden w-full max-w-md mx-auto transform transition-all duration-300 scale-95 opacity-0">
+            <div class="px-6 py-5 border-b border-gray-100/60 flex items-center justify-between">
+                <h5 class="text-xl font-semibold text-gray-800" id="editPlayerModalLabel">Edit Player</h5>
+                <button type="button" class="p-2 rounded-lg text-gray-400 hover:text-gray-500 hover:bg-gray-100/50 transition-all duration-200 modal-close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="editPlayerForm" class="add-player-form">
+                <div class="p-6">
+                    <input type="hidden" id="editPlayerId" name="player_id">
+                    <div class="mb-5">
+                        <label for="editPlayerName" class="block text-sm font-medium text-gray-700 mb-2">Player Name</label>
+                        <input type="text" class="w-full py-3 px-4 rounded-xl border border-gray-200/70 bg-white/80 focus:outline-none focus:ring-2 focus:ring-primary-100 focus:border-primary-500 transition-all duration-200" id="editPlayerName" name="name" required>
+                    </div>
+                    <div class="mb-2">
+                        <label for="editPlayerTeam" class="block text-sm font-medium text-gray-700 mb-2">Team</label>
+                        <select class="w-full py-3 px-4 rounded-xl border border-gray-200/70 bg-white/80 focus:outline-none focus:ring-2 focus:ring-primary-100 focus:border-primary-500 transition-all duration-200" id="editPlayerTeam" name="team" required>
+                            <option value="home">{{ home_team_name }} (Home)</option>
+                            <option value="away">{{ away_team_name }} (Away)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="px-6 py-4 border-t border-gray-100/60 flex justify-end gap-3">
+                    <button type="button" class="px-5 py-2.5 bg-white/90 text-gray-700 rounded-xl border border-gray-200/70 font-medium text-sm transition-all duration-200 hover:bg-gray-50/90 hover-lift modal-close">Cancel</button>
+                    <button type="submit" class="px-5 py-2.5 bg-primary-600 text-white rounded-xl font-medium text-sm transition-all duration-200 hover:bg-primary-700 hover-lift">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Match Player Modal -->
+<div id="matchPlayerModal" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-gray-900 bg-opacity-50 backdrop-blur-sm transition-opacity"></div>
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="glass-morphism rounded-2xl shadow-vision border border-gray-100/80 overflow-hidden w-full max-w-md mx-auto transform transition-all duration-300 scale-95 opacity-0">
+            <div class="px-6 py-5 border-b border-gray-100/60 flex items-center justify-between">
+                <h5 class="text-xl font-semibold text-gray-800" id="matchPlayerModalLabel">Match Player</h5>
+                <button type="button" class="p-2 rounded-lg text-gray-400 hover:text-gray-500 hover:bg-gray-100/50 transition-all duration-200 modal-close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="matchPlayerForm" class="add-player-form">
+                <div class="p-6">
+                    <input type="hidden" id="matchPlayerId" name="unmatched_player_id">
+                    <p class="mb-5 text-gray-600">Match <strong id="matchPlayerName" class="text-gray-800"></strong> to an existing player:</p>
+                    <div class="mb-2">
+                        <label for="matchExistingPlayer" class="block text-sm font-medium text-gray-700 mb-2">Select Existing Player</label>
+                        <select class="w-full py-3 px-4 rounded-xl border border-gray-200/70 bg-white/80 focus:outline-none focus:ring-2 focus:ring-primary-100 focus:border-primary-500 transition-all duration-200" id="matchExistingPlayer" name="existing_player_id" required>
+                            <option value="" selected disabled>-- Select a player --</option>
+                            <!-- Options will be filled dynamically based on the team -->
+                        </select>
+                    </div>
+                </div>
+                <div class="px-6 py-4 border-t border-gray-100/60 flex justify-end gap-3">
+                    <button type="button" class="px-5 py-2.5 bg-white/90 text-gray-700 rounded-xl border border-gray-200/70 font-medium text-sm transition-all duration-200 hover:bg-gray-50/90 hover-lift modal-close">Cancel</button>
+                    <button type="submit" class="px-5 py-2.5 bg-primary-600 text-white rounded-xl font-medium text-sm transition-all duration-200 hover:bg-primary-700 hover-lift">Match Player</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Save indicator -->
+<div class="fixed bottom-8 right-8 p-4 glass-morphism rounded-xl shadow-vision border border-gray-100/80 flex items-center z-50 animate-slide-up hidden" id="saveToast">
+    <div class="w-10 h-10 bg-primary-50/90 text-primary-600 rounded-xl flex items-center justify-center mr-3">
+        <i class="fas fa-save"></i>
+    </div>
+    <div class="font-medium text-gray-800">Saving changes...</div>
+</div>
+
+<!-- Confirmation Modal -->
+<div id="confirmModal" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-gray-900 bg-opacity-50 backdrop-blur-sm transition-opacity"></div>
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="glass-morphism rounded-2xl shadow-vision border border-gray-100/80 overflow-hidden w-full max-w-md mx-auto transform transition-all duration-300 scale-95 opacity-0 modal-content">
+            <div class="px-6 py-5 border-b border-gray-100/60 flex items-center justify-between">
+                <h5 class="text-xl font-semibold text-gray-800">Confirm Action</h5>
+                <button type="button" class="p-2 rounded-lg text-gray-400 hover:text-gray-500 hover:bg-gray-100/50 transition-all duration-200" id="closeConfirmModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <div class="flex items-start mb-4">
+                    <div class="w-10 h-10 bg-yellow-50 rounded-full flex items-center justify-center text-yellow-500 flex-shrink-0 mr-4">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <p id="confirmMessage" class="text-gray-700"></p>
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-gray-100/60 flex justify-end gap-3">
+                <button id="cancelBtn" class="px-5 py-2.5 bg-white/90 text-gray-700 rounded-xl border border-gray-200/70 font-medium text-sm transition-all duration-200 hover:bg-gray-50/90 hover-lift">Cancel</button>
+                <button id="confirmBtn" class="px-5 py-2.5 bg-red-600 text-white rounded-xl font-medium text-sm transition-all duration-200 hover:bg-red-700 hover-lift">Remove</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Unmatched Player Modal -->
+<div id="unmatchedPlayerModal" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-gray-900 bg-opacity-50 backdrop-blur-sm transition-opacity"></div>
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="glass-morphism rounded-2xl shadow-vision border border-gray-100/80 overflow-hidden w-full max-w-md mx-auto transform transition-all duration-300 scale-95 opacity-0 modal-content">
+            <div class="px-6 py-5 border-b border-gray-100/60 flex items-center justify-between">
+                <h5 class="text-xl font-semibold text-gray-800" id="unmatchedPlayerModalTitle">Edit Unmatched Player</h5>
+                <button type="button" class="p-2 rounded-lg text-gray-400 hover:text-gray-500 hover:bg-gray-100/50 transition-all duration-200 close-modal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="unmatchedPlayerForm" class="add-player-form">
+                <div class="p-6">
+                    <input type="hidden" id="unmatched-player-id" name="player_id">
+                    <div class="mb-5">
+                        <label for="unmatched-player-name" class="block text-sm font-medium text-gray-700 mb-2">Player Name</label>
+                        <input type="text" class="w-full py-3 px-4 rounded-xl border border-gray-200/70 bg-white/80 focus:outline-none focus:ring-2 focus:ring-primary-100 focus:border-primary-500 transition-all duration-200" id="unmatched-player-name" name="name" required>
+                    </div>
+                    <div class="mb-2">
+                        <label for="unmatched-player-team" class="block text-sm font-medium text-gray-700 mb-2">Team</label>
+                        <select class="w-full py-3 px-4 rounded-xl border border-gray-200/70 bg-white/80 focus:outline-none focus:ring-2 focus:ring-primary-100 focus:border-primary-500 transition-all duration-200" id="unmatched-player-team" name="team" required>
+                            <option value="home">{{ home_team_name }} (Home)</option>
+                            <option value="away">{{ away_team_name }} (Away)</option>
+                        </select>
+                    </div>
+                    <div class="mt-4 flex items-center">
+                        <span id="unmatched-player-name-display" class="font-medium text-gray-800"></span>
+                        <span id="unmatched-player-team-badge" class="team-badge ml-2"></span>
+                    </div>
+                </div>
+                <div class="px-6 py-4 border-t border-gray-100/60 flex justify-end gap-3">
+                    <button type="button" class="px-5 py-2.5 bg-white/90 text-gray-700 rounded-xl border border-gray-200/70 font-medium text-sm transition-all duration-200 hover:bg-gray-50/90 hover-lift close-modal">Cancel</button>
+                    <button type="submit" class="px-5 py-2.5 bg-primary-600 text-white rounded-xl font-medium text-sm transition-all duration-200 hover:bg-primary-700 hover-lift">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Player data arrays for suggestions
+    const homePlayers = [];
+    const awayPlayers = [];
+    const unmatchedPlayers = [];
+    
+    // Variables for selected player in autocomplete
+    let selectedPlayerId = null;
+    let selectedPlayerTeam = null;
+    let selectedPlayerSource = null;
+    
+    // Process existing player data to populate suggestion arrays
+    document.querySelectorAll('#home-player-list .player-item').forEach(item => {
+        const playerId = item.querySelector('.player-check').dataset.playerId;
+        const playerName = item.querySelector('.player-name').textContent.trim();
+        homePlayers.push({
+            id: playerId,
+            name: playerName,
+            team: 'home',
+            source: 'registered'
+        });
+    });
+    
+    document.querySelectorAll('#away-player-list .player-item').forEach(item => {
+        const playerId = item.querySelector('.player-check').dataset.playerId;
+        const playerName = item.querySelector('.player-name').textContent.trim();
+        awayPlayers.push({
+            id: playerId,
+            name: playerName,
+            team: 'away',
+            source: 'registered'
+        });
+    });
+    
+    // Initialize player counts
+    updateSelectedCount('home');
+    updateSelectedCount('away');
+    
+    // Process unmatched players data from the current match
+    document.querySelectorAll('.unmatched-player').forEach(item => {
+        const playerId = item.dataset.playerId;
+        const playerName = item.dataset.playerName;
+        const playerTeam = item.dataset.team;
+        const occurrenceCount = item.dataset.occurrenceCount || 1;
+        unmatchedPlayers.push({
+            id: playerId,
+            name: playerName,
+            team: playerTeam,
+            source: 'unmatched',
+            occurrence_count: parseInt(occurrenceCount)
+        });
+    });
+    
+    // Fetch all unmatched players from the database for suggestions
+    fetch('/api/match_players/{{ match_id }}')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.players && data.players.unmatched_players) {
+                // Process all unmatched players
+                data.players.unmatched_players.forEach(player => {
+                    // Check if player is already in our list (avoid duplicates)
+                    const existingIndex = unmatchedPlayers.findIndex(p => p.id === player.id);
+                    if (existingIndex === -1) {
+                        // Convert team_id to 'home' or 'away' designation
+                        const homeTeamId = data.players.match_teams.home.id;
+                        const awayTeamId = data.players.match_teams.away.id;
+                        let team = 'other';
+                        
+                        if (player.team_id === homeTeamId) {
+                            team = 'home';
+                        } else if (player.team_id === awayTeamId) {
+                            team = 'away';
+                        }
+                        
+                        unmatchedPlayers.push({
+                            id: player.id,
+                            name: player.name,
+                            team: team,
+                            team_id: player.team_id,
+                            source: 'unmatched',
+                            occurrence_count: player.occurrence_count || 1,
+                            team_name: player.team_name
+                        });
+                    }
+                });
+                
+                console.log(`Loaded ${unmatchedPlayers.length} unmatched players for suggestions`);
+                
+                // Update debug UI if available
+                const unmatchedCountElement = document.getElementById('unmatched-count');
+                if (unmatchedCountElement) {
+                    unmatchedCountElement.textContent = unmatchedPlayers.length;
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error loading unmatched players:', error);
+        });
+    
+    // Setup player name autocomplete
+    setupPlayerNameAutocomplete();
+    
+    // Initialize checked row highlighting
+    highlightCheckedRows();
+    
+    // Update Add Player button to set default team based on which button was clicked
+    document.querySelectorAll('[data-modal-target="addPlayerModal"]').forEach(button => {
+        button.addEventListener('click', function() {
+            const defaultTeam = this.getAttribute('data-default-team');
+            if (defaultTeam) {
+                const teamSelect = document.getElementById('playerTeam');
+                if (teamSelect) {
+                    teamSelect.value = defaultTeam;
+                    // Reset player name field and warning
+                    document.getElementById('playerName').value = '';
+                    document.getElementById('playerWarning').classList.add('hidden');
+                }
+            }
+        });
+    });
+    
+    // Modal functionality
+    initModals();
+    
+    // Set up debounce function for search
+    function debounce(func, wait) {
+        let timeout;
+        return function() {
+            const context = this, args = arguments;
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(context, args), wait);
+        };
+    }
+    
+    // Setup player name autocomplete
+    function setupPlayerNameAutocomplete() {
+        const playerNameInput = document.getElementById('playerName');
+        const playerSuggestions = document.getElementById('playerSuggestions');
+        const playerTeamSelect = document.getElementById('playerTeam');
+        const playerWarning = document.getElementById('playerWarning');
+        
+        if (!playerNameInput || !playerSuggestions) {
+            console.error('Player name input or suggestions element not found!');
+            return;
+        }
+        
+        let selectedIndex = -1;
+        
+        // Log number of players available for debugging
+        console.log(`Available players for suggestions: Home=${homePlayers.length}, Away=${awayPlayers.length}, Unmatched=${unmatchedPlayers.length}`);
+        
+        // Handle input events
+        playerNameInput.addEventListener('input', debounce(function(e) {
+            const query = e.target.value.trim().toLowerCase();
+            console.log(`Input event triggered with query: "${query}"`);
+            
+            if (query.length < 2) {
+                playerSuggestions.classList.add('hidden');
+                playerSuggestions.innerHTML = '';
+                selectedIndex = -1;
+                selectedPlayerId = null;
+                selectedPlayerTeam = null;
+                selectedPlayerSource = null;
+                playerWarning.classList.add('hidden');
+                return;
+            }
+            
+            // Filter players from all sources based on query
+            const matches = [...homePlayers, ...awayPlayers, ...unmatchedPlayers].filter(player => 
+                player.name.toLowerCase().includes(query)
+            );
+            
+            console.log(`Found ${matches.length} matches for "${query}" (including ${matches.filter(p => p.source === 'unmatched').length} unmatched)`);
+            
+            if (matches.length === 0) {
+                playerSuggestions.classList.add('hidden');
+                return;
+            }
+            
+            // Clear previous suggestions
+            playerSuggestions.innerHTML = '';
+            
+            // Add header for registered players
+            const registeredHeader = document.createElement('div');
+            registeredHeader.className = 'px-3 py-2 text-xs text-gray-500 bg-gray-100/50';
+            registeredHeader.textContent = 'Registered Players';
+            
+            // Add header for unmatched players
+            const unmatchedHeader = document.createElement('div');
+            unmatchedHeader.className = 'px-3 py-2 text-xs text-gray-500 bg-yellow-100/50';
+            unmatchedHeader.textContent = 'Unmatched Players';
+            
+            let hasRegisteredPlayers = false;
+            let hasUnmatchedPlayers = false;
+            
+            // Group matches by type
+            const registeredMatches = matches.filter(p => p.source === 'registered');
+            const unmatchedMatches = matches.filter(p => p.source === 'unmatched');
+            
+            // Add registered players first
+            if (registeredMatches.length > 0) {
+                hasRegisteredPlayers = true;
+                playerSuggestions.appendChild(registeredHeader);
+                
+                registeredMatches.forEach((player, index) => {
+                    addSuggestionItem(player, index);
+                });
+            }
+            
+            // Add unmatched players next
+            if (unmatchedMatches.length > 0) {
+                hasUnmatchedPlayers = true;
+                playerSuggestions.appendChild(unmatchedHeader);
+                
+                unmatchedMatches.forEach((player, index) => {
+                    addSuggestionItem(player, registeredMatches.length + index);
+                });
+            }
+            
+            function addSuggestionItem(player, index) {
+                const suggestionItem = document.createElement('div');
+                const currentTeam = playerTeamSelect.value;
+                
+                let teamClass = '';
+                let teamLabel = '';
+                
+                if (player.team === 'home') {
+                    teamClass = 'home-team';
+                    teamLabel = `<span class="team-indicator home">${'{{ home_team_name }}'}</span>`;
+                } else if (player.team === 'away') {
+                    teamClass = 'away-team';
+                    teamLabel = `<span class="team-indicator away">${'{{ away_team_name }}'}</span>`;
+                } else if (player.team === 'other') {
+                    teamClass = 'other-team';
+                    teamLabel = `<span class="team-indicator other">${player.team_name || 'Other Team'}</span>`;
+                }
+                
+                let sourceLabel = '';
+                if (player.source === 'unmatched') {
+                    sourceLabel = `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 ml-2">Unmatched</span>`;
+                    
+                    // Add occurrence count if available
+                    if (player.occurrence_count && player.occurrence_count > 1) {
+                        sourceLabel += `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 ml-1">×${player.occurrence_count}</span>`;
+                    }
+                }
+                
+                suggestionItem.className = `player-suggestion ${teamClass}`;
+                if (player.source === 'unmatched') {
+                    suggestionItem.className += ' bg-yellow-50/50';
+                }
+                
+                suggestionItem.innerHTML = `
+                    <div class="font-medium">${player.name}${teamLabel}${sourceLabel}</div>
+                `;
+                suggestionItem.dataset.index = index;
+                suggestionItem.dataset.id = player.id;
+                suggestionItem.dataset.name = player.name;
+                suggestionItem.dataset.team = player.team;
+                suggestionItem.dataset.source = player.source;
+                if (player.occurrence_count) {
+                    suggestionItem.dataset.occurrenceCount = player.occurrence_count;
+                }
+                
+                suggestionItem.addEventListener('click', function() {
+                    console.log(`Selected player: ${this.dataset.name} (ID: ${this.dataset.id}, Team: ${this.dataset.team})`);
+                    selectPlayer(this.dataset.name, this.dataset.id, this.dataset.team, this.dataset.source);
+                    playerSuggestions.classList.add('hidden');
+                });
+                
+                playerSuggestions.appendChild(suggestionItem);
+            }
+            
+            // Make sure the dropdown is visible
+            playerSuggestions.classList.remove('hidden');
+            // Force the dropdown to appear above other elements
+            playerSuggestions.style.display = 'block';
+            selectedIndex = -1;
+        }, 300));
+        
+        // Handle focus events
+        playerNameInput.addEventListener('focus', function() {
+            if (playerNameInput.value.trim().length >= 2) {
+                console.log('Input focused, showing suggestions');
+                playerSuggestions.classList.remove('hidden');
+                playerSuggestions.style.display = 'block';
+            }
+        });
+        
+        // Handle keyboard navigation
+        playerNameInput.addEventListener('keydown', function(e) {
+            if (playerSuggestions.classList.contains('hidden')) return;
+            
+            const suggestions = playerSuggestions.querySelectorAll('.player-suggestion');
+            if (suggestions.length === 0) return;
+            
+            // Remove selected class
+            if (selectedIndex >= 0 && selectedIndex < suggestions.length) {
+                suggestions[selectedIndex].classList.remove('selected');
+            }
+            
+            if (e.key === 'ArrowDown') {
+                selectedIndex = (selectedIndex + 1) % suggestions.length;
+                e.preventDefault();
+            } else if (e.key === 'ArrowUp') {
+                selectedIndex = selectedIndex <= 0 ? suggestions.length - 1 : selectedIndex - 1;
+                e.preventDefault();
+            } else if (e.key === 'Enter' && selectedIndex >= 0) {
+                e.preventDefault();
+                const selected = suggestions[selectedIndex];
+                selectPlayer(selected.dataset.name, selected.dataset.id, selected.dataset.team, selected.dataset.source);
+                playerSuggestions.classList.add('hidden');
+                return;
+            } else if (e.key === 'Escape') {
+                playerSuggestions.classList.add('hidden');
+                return;
+            }
+            
+            // Add selected class to new selection
+            if (selectedIndex >= 0) {
+                suggestions[selectedIndex].classList.add('selected');
+                
+                // Ensure selected item is visible in scroll
+                const container = playerSuggestions;
+                const item = suggestions[selectedIndex];
+                const containerHeight = container.clientHeight;
+                const itemTop = item.offsetTop;
+                const itemHeight = item.clientHeight;
+                
+                if (itemTop < container.scrollTop) {
+                    container.scrollTop = itemTop;
+                } else if (itemTop + itemHeight > container.scrollTop + containerHeight) {
+                    container.scrollTop = itemTop + itemHeight - containerHeight;
+                }
+            }
+        });
+        
+        // Close suggestions when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!playerNameInput.contains(e.target) && !playerSuggestions.contains(e.target)) {
+                playerSuggestions.classList.add('hidden');
+            }
+        });
+        
+        // Handle team selection changes
+        playerTeamSelect.addEventListener('change', function() {
+            // Check if current player selection is from different team
+            if (selectedPlayerTeam && selectedPlayerTeam !== this.value) {
+                playerWarning.classList.remove('hidden');
+            } else {
+                playerWarning.classList.add('hidden');
+            }
+        });
+        
+        // Function to select a player from suggestions
+        function selectPlayer(name, id, team, source) {
+            console.log(`Selecting player: ${name}, ID: ${id}, Team: ${team}, Source: ${source}`);
+            playerNameInput.value = name;
+            selectedPlayerId = id;
+            selectedPlayerTeam = team;
+            selectedPlayerSource = source;
+            
+            // Show warning if selected player is from different team
+            if (team !== playerTeamSelect.value) {
+                playerWarning.classList.remove('hidden');
+            } else {
+                playerWarning.classList.add('hidden');
+            }
+        }
+    }
+    
+    // Initialize modal functionality
+    function initModals() {
+        // Add click event to all modal open buttons
+        document.querySelectorAll('[data-modal-target]').forEach(button => {
+            button.addEventListener('click', function() {
+                const modalId = this.getAttribute('data-modal-target');
+                openModal(modalId);
+            });
+        });
+        
+        // Add click event to all modal close buttons
+        document.querySelectorAll('.modal-close').forEach(button => {
+            button.addEventListener('click', function() {
+                const modal = this.closest('.fixed.inset-0.z-50');
+                closeModal(modal);
+            });
+        });
+        
+        // Close modal when clicking outside content
+        document.querySelectorAll('.fixed.inset-0.z-50').forEach(modal => {
+            modal.addEventListener('click', function(e) {
+                if (e.target === this || e.target.classList.contains('absolute')) {
+                    closeModal(modal);
+                }
+            });
+        });
+        
+        // Close modal with escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                const visibleModal = document.querySelector('.fixed.inset-0.z-50:not(.hidden)');
+                if (visibleModal) {
+                    closeModal(visibleModal);
+                }
+            }
+        });
+    }
+    
+    // Function to open a modal
+    function openModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.classList.remove('hidden');
+            document.body.classList.add('overflow-hidden');
+            
+            // Fade in the backdrop
+            const backdrop = modal.querySelector('.absolute');
+            backdrop.classList.add('opacity-0');
+            
+            // Scale and fade in the modal
+            const modalContent = modal.querySelector('.glass-morphism');
+            modalContent.classList.add('scale-95', 'opacity-0');
+            
+            // Trigger animations
+            setTimeout(() => {
+                backdrop.classList.remove('opacity-0');
+                backdrop.classList.add('opacity-100', 'transition-opacity', 'duration-300');
+                
+                modalContent.classList.remove('scale-95', 'opacity-0');
+                modalContent.classList.add('scale-100', 'opacity-100');
+                
+                // Focus on input field if it exists
+                if (modalId === 'addPlayerModal') {
+                    setTimeout(() => {
+                        const inputField = document.getElementById('playerName');
+                        if (inputField) {
+                            inputField.focus();
+                        }
+                    }, 100);
+                }
+            }, 10);
+        }
+    }
+    
+    // Function to close a modal
+    function closeModal(modal) {
+        if (modal) {
+            // Fade out the backdrop
+            const backdrop = modal.querySelector('.absolute');
+            backdrop.classList.remove('opacity-100');
+            backdrop.classList.add('opacity-0', 'transition-opacity', 'duration-300');
+            
+            // Scale and fade out the modal
+            const modalContent = modal.querySelector('.glass-morphism');
+            modalContent.classList.remove('scale-100', 'opacity-100');
+            modalContent.classList.add('scale-95', 'opacity-0', 'transition-all', 'duration-200');
+            
+            // Hide after animation
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                document.body.classList.remove('overflow-hidden');
+            }, 200);
+        }
+    }
+    
+    // Helper function to get modal instance
+    window.getModalInstance = function(modalId) {
+        return {
+            show: function() {
+                openModal(modalId);
+            },
+            hide: function() {
+                closeModal(document.getElementById(modalId));
+            }
+        };
+    };
+    
+    // Function to highlight checked rows
+    function highlightCheckedRows() {
+        document.querySelectorAll('.player-check').forEach(checkbox => {
+            const playerItem = checkbox.closest('.player-item');
+            if (checkbox.checked) {
+                playerItem.classList.add('checked');
+                playerItem.classList.add('bg-blue-50');
+            } else {
+                playerItem.classList.remove('checked');
+                playerItem.classList.remove('bg-blue-50');
+            }
+        });
+        
+        // Update the counts for both teams
+        updateSelectedCount('home');
+        updateSelectedCount('away');
+    }
+    
+    // Handle player checkbox changes
+    document.querySelectorAll('.player-check').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const team = this.dataset.team;
+            const playerItem = this.closest('.player-item');
+            
+            if (this.checked) {
+                playerItem.classList.add('checked');
+                playerItem.classList.add('bg-blue-50');
+                this.classList.add('animate-pulse-check');
+            } else {
+                playerItem.classList.remove('checked');
+                playerItem.classList.remove('bg-blue-50');
+            }
+            
+            updateSelectedCount(team);
+            saveChanges();
+        });
+    });
+    
+    // Handle select all buttons
+    document.querySelectorAll('.select-all-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const team = this.dataset.team;
+            const checkboxes = document.querySelectorAll(`.player-check[data-team="${team}"]:not(:disabled)`);
+            
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = true;
+                const playerItem = checkbox.closest('.player-item');
+                playerItem.classList.add('checked');
+                playerItem.classList.add('bg-blue-50');
+            });
+            
+            updateSelectedCount(team);
+            saveChanges();
+        });
+    });
+    
+    // Handle deselect all buttons
+    document.querySelectorAll('.deselect-all-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const team = this.dataset.team;
+            const checkboxes = document.querySelectorAll(`.player-check[data-team="${team}"]`);
+            
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = false;
+                const playerItem = checkbox.closest('.player-item');
+                playerItem.classList.remove('checked');
+                playerItem.classList.remove('bg-blue-50');
+            });
+            
+            updateSelectedCount(team);
+            saveChanges();
+        });
+    });
+    
+    // Handle player search
+    document.querySelectorAll('.player-search').forEach(searchInput => {
+        searchInput.addEventListener('input', debounce(function() {
+            const team = this.dataset.team;
+            const searchTerm = this.value.toLowerCase();
+            const playerItems = document.querySelectorAll(`#${team}-player-list .player-item`);
+            
+            playerItems.forEach(item => {
+                const playerName = item.querySelector('.player-name').textContent.trim().toLowerCase();
+                if (playerName.includes(searchTerm)) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }, 300));
+    });
+    
+    // Function to update selected count
+    function updateSelectedCount(team) {
+        try {
+        const checkboxes = document.querySelectorAll(`.player-check[data-team="${team}"]:checked`);
+            console.log(`Updating ${team} team count: ${checkboxes.length} players selected`);
+            
+            // Use direct ID selector for the count element
+            const countElement = document.getElementById(`${team}-selected-count`);
+            if (!countElement) {
+                console.error(`Could not find count element for ${team}`);
+                return;
+            }
+            
+            countElement.textContent = checkboxes.length;
+            console.log(`Updated ${team} count to ${checkboxes.length}`);
+        } catch (error) {
+            console.error(`Error updating selected count for ${team}:`, error);
+        }
+    }
+    
+    // Custom toast handling
+    const saveToast = document.getElementById('saveToast');
+    
+    function showToast() {
+        saveToast.classList.remove('hidden');
+        setTimeout(() => {
+            saveToast.classList.add('hidden');
+        }, 2000);
+    }
+    
+    // Function to save changes
+    let saveTimeout;
+    function saveChanges() {
+        // Show saving toast
+        showToast();
+        
+        // Clear any pending save
+        clearTimeout(saveTimeout);
+        
+        // Delay the save to avoid too many requests
+        saveTimeout = setTimeout(() => {
+            // Get all selected player IDs
+            const selectedPlayerIds = [];
+            document.querySelectorAll('.player-check:checked').forEach(checkbox => {
+                selectedPlayerIds.push(checkbox.dataset.playerId);
+            });
+            
+            // Send to server
+            fetch('{{ url_for("update_match_appearances", match_id=match_id) }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    player_ids: selectedPlayerIds
+                }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Show success message briefly
+                    const successAlert = document.querySelector('.save-success');
+                    successAlert.classList.remove('hidden');
+                    successAlert.classList.add('flex');
+                    setTimeout(() => {
+                        successAlert.classList.add('hidden');
+                        successAlert.classList.remove('flex');
+                    }, 3000);
+                } else {
+                    // Show error
+                    const errorAlert = document.querySelector('.save-error');
+                    errorAlert.querySelector('.error-message').textContent = data.error;
+                    errorAlert.classList.remove('hidden');
+                    errorAlert.classList.add('flex');
+                }
+            })
+            .catch(error => {
+                // Show error
+                const errorAlert = document.querySelector('.save-error');
+                errorAlert.querySelector('.error-message').textContent = "Network error. Please try again.";
+                errorAlert.classList.remove('hidden');
+                errorAlert.classList.add('flex');
+            });
+        }, 1000);
+    }
+    
+    // Handle unmatched players functionality
+    
+    // Add Player Form Submission
+    if (document.getElementById("addPlayerForm")) {
+        document.getElementById("addPlayerForm").addEventListener("submit", function(e) {
+            e.preventDefault();
+            const playerNameInput = document.getElementById("playerName");
+            const playerTeamSelect = document.getElementById("playerTeam");
+            const playerName = playerNameInput.value.trim();
+            const playerTeam = playerTeamSelect.value;
+            
+            if (!playerName) {
+                showStatusMessage("error", "Please enter a player name");
+                return;
+            }
+            
+            // If we have a selected player from unmatched players, increment occurrence
+            if (selectedPlayerId && selectedPlayerSource === 'unmatched') {
+                fetch('/increment_unmatched_player/{{ match_day_id }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                        player_id: selectedPlayerId,
+                        team: playerTeam // We might use the currently selected team, not the original player's team
+                }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Hide modal
+                        closeModal(document.getElementById("addPlayerModal"));
+                        
+                        // Find existing player element to update
+                        const existingPlayerElement = document.querySelector(`.unmatched-player[data-player-id="${selectedPlayerId}"]`);
+                        
+                        if (existingPlayerElement) {
+                            // If the player already exists in UI, update their occurrence count
+                            const newCount = data.occurrence_count || parseInt(existingPlayerElement.dataset.occurrenceCount) + 1;
+                            existingPlayerElement.dataset.occurrenceCount = newCount;
+                            
+                            // Update badge in UI
+                            const playerNameContainer = existingPlayerElement.querySelector('.flex.items-center');
+                            let countBadge = playerNameContainer.querySelector('.rounded-full.bg-blue-100');
+                            
+                            if (countBadge) {
+                                countBadge.textContent = `×${newCount}`;
+                            } else if (newCount > 1) {
+                                countBadge = document.createElement('span');
+                                countBadge.className = 'ml-2 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800';
+                                countBadge.textContent = `×${newCount}`;
+                                playerNameContainer.appendChild(countBadge);
+                            }
+                            
+                            // Also update in the unmatchedPlayers array for suggestions
+                            const playerIndex = unmatchedPlayers.findIndex(p => p.id === selectedPlayerId);
+                            if (playerIndex !== -1) {
+                                unmatchedPlayers[playerIndex].occurrence_count = newCount;
+                            }
+                        } else if (data.is_new) {
+                            // If it's a new player for this match (but existed in another match)
+                            addUnmatchedPlayerToUI(selectedPlayerId, playerName, playerTeam, data.occurrence_count || 1);
+                        }
+                        
+                        // Reset form
+                        document.getElementById("addPlayerForm").reset();
+                        
+                        // Reset selected player data
+                        selectedPlayerId = null;
+                        selectedPlayerTeam = null;
+                        selectedPlayerSource = null;
+                    
+                    // Show success message
+                        showStatusMessage("success", "Player added successfully!");
+                } else {
+                    showStatusMessage("error", data.error);
+                }
+            })
+            .catch(error => {
+                    showStatusMessage("error", "Error adding player. Please try again.");
+                });
+                
+                return;
+            }
+            
+            // Regular add new unmatched player
+            fetch('/add_unmatched_player/{{ match_day_id }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                    name: playerName,
+                    team: playerTeam,
+                    from_different_team: selectedPlayerId ? (selectedPlayerTeam !== playerTeam) : false,
+                    source_player_id: selectedPlayerId,
+                    source_team: selectedPlayerTeam
+            }),
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                    // Hide modal
+                    closeModal(document.getElementById("addPlayerModal"));
+                    
+                    // Check if this is an existing player that was incremented
+                    if (data.is_existing) {
+                        // Try to find the player in the UI
+                        const existingPlayerElement = document.querySelector(`.unmatched-player[data-player-id="${data.player_id}"]`);
+                        
+                        if (existingPlayerElement) {
+                            // Update the occurrence count
+                            const newCount = data.occurrence_count || parseInt(existingPlayerElement.dataset.occurrenceCount) + 1;
+                            existingPlayerElement.dataset.occurrenceCount = newCount;
+                            
+                            // Update badge in UI
+                            const playerNameContainer = existingPlayerElement.querySelector('.flex.items-center');
+                            let countBadge = playerNameContainer.querySelector('.rounded-full.bg-blue-100');
+                            
+                            if (countBadge) {
+                                countBadge.textContent = `×${newCount}`;
+                            } else if (newCount > 1) {
+                                countBadge = document.createElement('span');
+                                countBadge.className = 'ml-2 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800';
+                                countBadge.textContent = `×${newCount}`;
+                                playerNameContainer.appendChild(countBadge);
+                            }
+                            
+                            // Also update in the unmatchedPlayers array for suggestions
+                            const playerIndex = unmatchedPlayers.findIndex(p => p.id === data.player_id);
+                            if (playerIndex !== -1) {
+                                unmatchedPlayers[playerIndex].occurrence_count = newCount;
+                            }
+                        } else {
+                            // Player exists in database but not in current UI, add it
+                            addUnmatchedPlayerToUI(data.player_id, playerName, playerTeam, data.occurrence_count || 1);
+                        }
+                } else {
+                        // Add new player to list with new ID
+                        const occurrenceCount = data.occurrence_count || 1;
+                        addUnmatchedPlayerToUI(data.player_id, playerName, playerTeam, occurrenceCount);
+                    }
+                    
+                    // Reset form
+                    document.getElementById("addPlayerForm").reset();
+                    
+                    // Reset selected player data
+                    selectedPlayerId = null;
+                    selectedPlayerTeam = null;
+                    selectedPlayerSource = null;
+                    
+                    // Show success message
+                    showStatusMessage("success", "Player added successfully!");
+                } else {
+                    showStatusMessage("error", data.error);
+                }
+            })
+            .catch(error => {
+                console.error("Error adding player:", error);
+                showStatusMessage("error", "Error adding player. Please try again.");
+            });
+        });
+    }
+    
+    // Edit Player Form Submission
+    if (document.getElementById("editPlayerForm")) {
+        document.getElementById("editPlayerForm").addEventListener("submit", function(e) {
+            e.preventDefault();
+            const playerId = document.getElementById("editPlayerId").value;
+            const playerName = document.getElementById("editPlayerName").value;
+            const playerTeam = document.getElementById("editPlayerTeam").value;
+            
+            fetch('/edit_unmatched_player/{{ match_day_id }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    player_id: playerId,
+                    name: playerName,
+                    team: playerTeam
+                }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Hide modal
+                    closeModal(document.getElementById("editPlayerModal"));
+                    
+                    // Update player in UI
+                    updateUnmatchedPlayerInUI(playerId, playerName, playerTeam);
+                    
+                    // Show success message
+                    showStatusMessage("success", "Player updated successfully!");
+                } else {
+                    showStatusMessage("error", data.error);
+                }
+            })
+            .catch(error => {
+                showStatusMessage("error", "Error updating player. Please try again.");
+            });
+        });
+    }
+    
+    // Match Player Form Submission
+    if (document.getElementById("matchPlayerForm")) {
+        document.getElementById("matchPlayerForm").addEventListener("submit", function(e) {
+            e.preventDefault();
+            const unmatchedPlayerId = document.getElementById("matchPlayerId").value;
+            const existingPlayerId = document.getElementById("matchExistingPlayer").value;
+            
+            fetch('/match_player/{{ match_day_id }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    unmatched_player_id: unmatchedPlayerId,
+                    existing_player_id: existingPlayerId
+                }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Hide modal
+                    closeModal(document.getElementById("matchPlayerModal"));
+                    
+                    // Remove unmatched player from UI
+                    removeUnmatchedPlayerFromUI(unmatchedPlayerId);
+                    
+                    // Show success message
+                    showStatusMessage("success", "Player matched successfully!");
+                } else {
+                    showStatusMessage("error", data.error);
+                }
+            })
+            .catch(error => {
+                showStatusMessage("error", "Error matching player. Please try again.");
+            });
+        });
+    }
+    
+    // Debug functionality - show all unmatched players
+    // To enable debugging, run this in the browser console: document.getElementById('debug-section').style.display = 'block';
+    const debugSection = document.getElementById('debug-section');
+    const debugButton = document.getElementById('debug-show-unmatched');
+    const unmatchedCount = document.getElementById('unmatched-count');
+    const unmatchedList = document.getElementById('debug-unmatched-list');
+    
+    if (debugButton && unmatchedCount) {
+        // Update counter
+        unmatchedCount.textContent = unmatchedPlayers.length;
+        
+        // Add click handler
+        debugButton.addEventListener('click', function() {
+            // Toggle list visibility
+            if (unmatchedList.style.display === 'none') {
+                unmatchedList.style.display = 'block';
+                
+                // Clear and populate list
+                unmatchedList.innerHTML = '';
+                
+                if (unmatchedPlayers.length === 0) {
+                    unmatchedList.innerHTML = '<div class="p-2">No unmatched players found</div>';
+                } else {
+                    // Sort by team
+                    const sortedPlayers = [...unmatchedPlayers].sort((a, b) => {
+                        if (a.team === b.team) {
+                            return a.name.localeCompare(b.name);
+                        }
+                        return a.team.localeCompare(b.team);
+                    });
+                    
+                    // Create table
+                    const table = document.createElement('table');
+                    table.className = 'w-full text-xs';
+                    table.innerHTML = `
+                        <thead>
+                            <tr class="bg-gray-100">
+                                <th class="p-1 text-left">Name</th>
+                                <th class="p-1 text-left">Team</th>
+                                <th class="p-1 text-right">Count</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    `;
+                    
+                    const tbody = table.querySelector('tbody');
+                    
+                    sortedPlayers.forEach(player => {
+                        const row = document.createElement('tr');
+                        row.className = 'border-b border-gray-100 hover:bg-gray-50';
+                        
+                        const teamClass = player.team === 'home' 
+                            ? 'text-green-600' 
+                            : player.team === 'away' 
+                                ? 'text-red-600' 
+                                : 'text-orange-600';
+                        
+                        row.innerHTML = `
+                            <td class="p-1">${player.name}</td>
+                            <td class="p-1 ${teamClass}">${player.team}</td>
+                            <td class="p-1 text-right">${player.occurrence_count || 1}</td>
+                        `;
+                        
+                        tbody.appendChild(row);
+                    });
+                    
+                    unmatchedList.appendChild(table);
+                }
+            } else {
+                unmatchedList.style.display = 'none';
+            }
+        });
+    }
+    
+    // Initialize close-modal buttons for unmatchedPlayerModal
+    document.querySelectorAll('#unmatchedPlayerModal .close-modal').forEach(button => {
+        button.addEventListener('click', function() {
+            const modal = document.getElementById('unmatchedPlayerModal');
+            if (modal) {
+                const modalContent = modal.querySelector('.glass-morphism');
+                modalContent.style.animation = 'scaleOut 0.3s ease-in forwards';
+                
+                setTimeout(() => {
+                    modal.classList.add('hidden');
+                    document.body.classList.remove('overflow-hidden');
+                }, 300);
+            }
+        });
+    });
+    
+    // Add event listener for unmatchedPlayerForm submission
+    const unmatchedPlayerForm = document.getElementById('unmatchedPlayerForm');
+    if (unmatchedPlayerForm) {
+        unmatchedPlayerForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+            
+            const playerId = document.getElementById('unmatched-player-id').value;
+            const playerName = document.getElementById('unmatched-player-name').value.trim();
+            const playerTeam = document.getElementById('unmatched-player-team').value;
+            
+            if (!playerName) {
+                showToast('Please enter a player name', 'warning');
+                return;
+            }
+            
+            // Show loading state
+            const submitBtn = unmatchedPlayerForm.querySelector('button[type="submit"]');
+            const originalBtnText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Saving...';
+            
+            // Determine if this is a new player or an edit
+            const isEdit = playerId !== '';
+            
+            // Prepare the request data
+            const requestData = {
+                name: playerName,
+                team: playerTeam
+            };
+            
+            // Add player ID if editing
+            if (isEdit) {
+                requestData.player_id = playerId;
+            }
+            
+            // Send request to add or update player
+            fetch(`/api/unmatched_player/${isEdit ? 'update' : 'add'}/{{ match_id }}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify(requestData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Close the modal with animation
+                    const modal = document.getElementById('unmatchedPlayerModal');
+                    const modalContent = modal.querySelector('.glass-morphism');
+                    modalContent.style.animation = 'scaleOut 0.3s ease-in forwards';
+                    
+                    setTimeout(() => {
+                        modal.classList.add('hidden');
+                        document.body.classList.remove('overflow-hidden');
+                        
+                        // Reset form
+                        document.getElementById('unmatchedPlayerForm').reset();
+                        document.getElementById('unmatched-player-id').value = '';
+                        
+                        // Reset button
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = originalBtnText;
+                        
+                        if (isEdit) {
+                            // Update existing player in UI
+                            updateUnmatchedPlayerInUI(data.player_id, playerName, playerTeam);
+                            showToast('Player updated successfully', 'success');
+                        } else {
+                            // Add new player to UI
+                            addUnmatchedPlayerToUI(data.player_id, playerName, playerTeam, data.occurrence_count || 1);
+                            showToast('Player added successfully', 'success');
+                        }
+                    }, 300);
+                } else {
+                    // Show error
+                    showToast(`Error: ${data.error}`, 'error');
+                    
+                    // Reset button
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalBtnText;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('An error occurred while processing your request', 'error');
+                
+                // Reset button
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnText;
+            });
+        });
+    }
+});
+
+// Function to edit an unmatched player
+function editUnmatchedPlayer(playerId, playerName, playerTeam) {
+    console.log(`Editing unmatched player: ${playerName} (${playerId}), Team: ${playerTeam}`);
+    
+    // Set modal title
+    document.getElementById('unmatchedPlayerModalTitle').textContent = 'Edit Unmatched Player';
+    
+    // Set form values
+    document.getElementById('unmatched-player-id').value = playerId;
+    document.getElementById('unmatched-player-name').value = playerName;
+    
+    // Set team dropdown
+    const teamSelect = document.getElementById('unmatched-player-team');
+    for (let i = 0; i < teamSelect.options.length; i++) {
+        if (teamSelect.options[i].value === playerTeam) {
+            teamSelect.selectedIndex = i;
+            break;
+        }
+    }
+    
+    // Update display elements
+    document.getElementById('unmatched-player-name-display').textContent = playerName;
+    const teamBadge = document.getElementById('unmatched-player-team-badge');
+    teamBadge.className = `team-badge ${playerTeam}`;
+    teamBadge.textContent = playerTeam.charAt(0).toUpperCase() + playerTeam.slice(1);
+    
+    // Show the modal with animation
+    const modal = document.getElementById('unmatchedPlayerModal');
+    modal.classList.remove('hidden');
+    document.body.classList.add('overflow-hidden');
+    
+    // Add entrance animation
+    const modalContent = modal.querySelector('.glass-morphism');
+    modalContent.style.animation = 'none';
+    modalContent.offsetHeight; // Trigger reflow
+    modalContent.style.animation = 'scaleIn 0.3s ease-out forwards';
+    
+    // Focus on the name input
+    setTimeout(() => {
+        document.getElementById('unmatched-player-name').focus();
+    }, 300);
+}
+
+// Function to delete an unmatched player
+function deleteUnmatchedPlayer(playerId, playerName) {
+    console.log(`Deleting unmatched player: ${playerName} (${playerId})`);
+    
+    // Show confirmation with animation
+    const confirmModal = document.getElementById('confirmModal');
+    confirmModal.classList.remove('hidden');
+    document.body.classList.add('overflow-hidden');
+    
+    // Add entrance animation
+    const modalContent = confirmModal.querySelector('.glass-morphism');
+    modalContent.style.animation = 'none';
+    modalContent.offsetHeight; // Trigger reflow
+    modalContent.style.animation = 'scaleIn 0.3s ease-out forwards';
+    
+    // Set confirmation message
+    document.getElementById('confirmMessage').textContent = `Are you sure you want to remove "${playerName}"?`;
+    
+    // Set up confirm button
+    const confirmBtn = document.getElementById('confirmBtn');
+    confirmBtn.onclick = function() {
+        // Add exit animation
+        modalContent.style.animation = 'scaleOut 0.3s ease-in forwards';
+        
+        setTimeout(() => {
+            confirmModal.classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+            
+            // Send request to decrement or remove player
+            fetch(`/api/decrement_unmatched_player/${playerId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    console.log(`Successfully decremented/removed player ${playerId}`);
+                    
+                    if (data.removed) {
+                        // Player was completely removed
+                        removeUnmatchedPlayerFromUI(playerId);
+                        showToast('Player removed successfully', 'success');
+                    } else {
+                        // Player count was decremented
+                        const newCount = data.new_count;
+                        updateUnmatchedPlayerOccurrence(playerId, newCount);
+                        showToast('Player occurrence count updated', 'success');
+                    }
+                } else {
+                    console.error('Error removing player:', data.error);
+                    showToast('Error: ' + data.error, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('An error occurred while processing your request', 'error');
+            });
+        }, 300);
+    };
+    
+    // Set up cancel button
+    const cancelBtn = document.getElementById('cancelBtn');
+    cancelBtn.onclick = function() {
+        // Add exit animation
+        modalContent.style.animation = 'scaleOut 0.3s ease-in forwards';
+        
+        setTimeout(() => {
+            confirmModal.classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+        }, 300);
+    };
+}
+
+// Function to open the match player modal
+function matchPlayer(playerId, playerName, playerTeam) {
+    // Set values in the match modal
+    document.getElementById("matchPlayerId").value = playerId;
+    document.getElementById("matchPlayerName").textContent = playerName;
+    
+    // Clear previous options
+    const selectElement = document.getElementById("matchExistingPlayer");
+    selectElement.innerHTML = '<option value="" selected disabled>-- Select a player --</option>';
+    
+    // Add existing players from the same team
+    const teamSelector = playerTeam === "home" ? "#home-player-list" : "#away-player-list";
+    document.querySelectorAll(`${teamSelector} .player-item`).forEach(function(item) {
+        const name = item.querySelector('.player-name').textContent.trim();
+        const id = item.querySelector('.player-check').dataset.playerId;
+        const option = document.createElement('option');
+        option.value = id;
+        option.textContent = name;
+        selectElement.appendChild(option);
+    });
+    
+    // Show the match modal
+    getModalInstance("matchPlayerModal").show();
+}
+
+// Helper function to add unmatched player to UI
+function addUnmatchedPlayerToUI(playerId, playerName, playerTeam, occurrenceCount = 1) {
+    console.log(`Adding unmatched player to UI: ${playerName} (${playerId}), Team: ${playerTeam}, Count: ${occurrenceCount}`);
+    
+    // Create the player element
+    const playerElement = document.createElement('div');
+    playerElement.className = 'unmatched-player flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-white rounded-xl shadow-sm border border-gray-100/80 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5';
+    playerElement.dataset.playerId = playerId;
+    playerElement.dataset.playerName = playerName;
+    playerElement.dataset.team = playerTeam;
+    playerElement.dataset.occurrenceCount = occurrenceCount;
+    
+    // Add animation class
+    playerElement.style.animation = 'fadeIn 0.5s ease-out';
+    
+    const occurrenceBadge = occurrenceCount > 1 ? 
+        `<span class="ml-2 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">×${occurrenceCount}</span>` : '';
+    
+    playerElement.innerHTML = `
+        <div class="flex items-center">
+            <span class="unmatched-player-name font-medium text-gray-700">${playerName}</span>
+            <span class="team-badge ${playerTeam}">${playerTeam.charAt(0).toUpperCase() + playerTeam.slice(1)}</span>
+            ${occurrenceBadge}
+        </div>
+        <div class="flex flex-wrap gap-2 justify-end">
+            <button class="flex items-center justify-center p-2 bg-white/90 text-blue-600 rounded-lg border border-gray-200/70 text-sm transition-all duration-200 hover:bg-blue-50/90 hover-lift" onclick="editUnmatchedPlayer('${playerId}', '${playerName}', '${playerTeam}')">
+                <i class="fas fa-pen"></i>
+            </button>
+            <button class="flex items-center justify-center p-2 bg-white/90 text-red-600 rounded-lg border border-gray-200/70 text-sm transition-all duration-200 hover:bg-red-50/90 hover-lift" onclick="deleteUnmatchedPlayer('${playerId}', '${playerName}')">
+                <i class="fas fa-trash"></i>
+            </button>
+            <button class="flex items-center justify-center px-3 py-2 bg-white/90 text-gray-700 rounded-lg border border-gray-200/70 text-sm transition-all duration-200 hover:bg-gray-50/90 hover-lift" onclick="matchPlayer('${playerId}', '${playerName}', '${playerTeam}')">
+                <i class="fas fa-link mr-1"></i> Match
+            </button>
+        </div>
+    `;
+    
+    // Add to the proper unmatched container
+    const containerId = `${playerTeam}-unmatched-container`;
+    const container = document.getElementById(containerId);
+    if (!container) {
+        console.error(`Container not found: ${containerId}`);
+        return;
+    }
+    
+    const contentContainer = container.querySelector('.bg-' + playerTeam + '-50');
+    if (!contentContainer) {
+        console.error(`Content container not found in ${containerId}`);
+        return;
+    }
+    
+    const gridContainer = contentContainer.querySelector('.grid');
+    
+    // Check if empty state exists
+    const emptyState = contentContainer.querySelector('.empty-state');
+    if (emptyState) {
+        // Add fade out animation to empty state
+        emptyState.style.animation = 'fadeOut 0.3s ease-out forwards';
+        
+        setTimeout(() => {
+            // Replace empty state with a grid and add the player
+            emptyState.remove();
+            const grid = document.createElement('div');
+            grid.className = 'grid grid-cols-1 gap-3';
+            contentContainer.appendChild(grid);
+            grid.appendChild(playerElement);
+            
+            // Highlight the grid with a subtle animation
+            grid.style.animation = 'fadeIn 0.5s ease-out';
+        }, 300);
+    } else if (gridContainer) {
+        // Add to existing grid
+        gridContainer.appendChild(playerElement);
+        
+        // Scroll to the new element
+        setTimeout(() => {
+            playerElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 100);
+    } else {
+        // Create grid and add player
+        const grid = document.createElement('div');
+        grid.className = 'grid grid-cols-1 gap-3';
+        contentContainer.appendChild(grid);
+        grid.appendChild(playerElement);
+        
+        // Highlight the grid with a subtle animation
+        grid.style.animation = 'fadeIn 0.5s ease-out';
+    }
+    
+    // Briefly highlight the new element
+    setTimeout(() => {
+        playerElement.style.backgroundColor = '#f0f9ff'; // Light blue background
+        setTimeout(() => {
+            playerElement.style.backgroundColor = ''; // Back to default
+            playerElement.style.transition = 'background-color 1s ease-out';
+        }, 1000);
+    }, 100);
+    
+    // Update unmatchedPlayers array for suggestions
+    const existingPlayerIndex = unmatchedPlayers.findIndex(p => p.id === playerId);
+    if (existingPlayerIndex !== -1) {
+        // Update existing player
+        unmatchedPlayers[existingPlayerIndex].name = playerName;
+        unmatchedPlayers[existingPlayerIndex].team = playerTeam;
+        unmatchedPlayers[existingPlayerIndex].occurrence_count = occurrenceCount;
+        console.log(`Updated existing player in array at index ${existingPlayerIndex}`);
+    } else {
+        // Add new player to array
+        unmatchedPlayers.push({
+            id: playerId,
+            name: playerName,
+            team: playerTeam,
+            source: 'unmatched',
+            occurrence_count: occurrenceCount
+        });
+        console.log(`Added new player to array, total count: ${unmatchedPlayers.length}`);
+    }
+}
+
+// Helper function to update unmatched player in UI
+function updateUnmatchedPlayerInUI(playerId, newName, newTeam) {
+    console.log(`Updating unmatched player in UI: ${newName} (${playerId}), Team: ${newTeam}`);
+    
+    // Find the player element
+    const playerElement = document.querySelector(`.unmatched-player[data-player-id="${playerId}"]`);
+    if (!playerElement) {
+        console.error(`Player element not found for ID: ${playerId}`);
+        return;
+    }
+    
+    // Get current team
+    const currentTeam = playerElement.dataset.team;
+    const currentName = playerElement.dataset.playerName;
+    const occurrenceCount = parseInt(playerElement.dataset.occurrenceCount || '1');
+    
+    // If team changed, we need to move the player to the other container
+    if (currentTeam !== newTeam) {
+        console.log(`Team changed from ${currentTeam} to ${newTeam}, moving player element`);
+        
+        // Fade out the current element
+        playerElement.style.animation = 'fadeOut 0.5s ease-out forwards';
+        
+        setTimeout(() => {
+            // Remove from current container
+            playerElement.remove();
+            
+            // Check if this was the last player in the grid
+            const oldGridContainer = document.querySelector(`#${currentTeam}-unmatched-container .bg-${currentTeam}-50 .grid`);
+            if (oldGridContainer && oldGridContainer.children.length === 0) {
+                // Create and add empty state for old container
+                oldGridContainer.remove();
+                const oldContentContainer = document.querySelector(`#${currentTeam}-unmatched-container .bg-${currentTeam}-50`);
+                const emptyState = document.createElement('div');
+                emptyState.className = 'empty-state text-center py-8 text-gray-500';
+                emptyState.innerHTML = `<p>No unmatched players for ${currentTeam.charAt(0).toUpperCase() + currentTeam.slice(1)} team</p>`;
+                oldContentContainer.appendChild(emptyState);
+                emptyState.style.animation = 'fadeIn 0.5s ease-out';
+            }
+            
+            // Add to new container with animation
+            addUnmatchedPlayerToUI(playerId, newName, newTeam, occurrenceCount);
+        }, 500);
+    } else {
+        // Just update the existing element
+        // Update dataset
+        playerElement.dataset.playerName = newName;
+        
+        // Update name display
+        const nameElement = playerElement.querySelector('.unmatched-player-name');
+        if (nameElement) {
+            // Apply highlight animation if name changed
+            if (currentName !== newName) {
+                nameElement.style.animation = 'none';
+                nameElement.offsetHeight; // Trigger reflow
+                nameElement.style.animation = 'pulse 1s ease-in-out';
+                nameElement.style.backgroundColor = '#f0f9ff';
+                setTimeout(() => {
+                    nameElement.style.backgroundColor = '';
+                    nameElement.style.transition = 'background-color 1s ease-out';
+                }, 1000);
+            }
+            nameElement.textContent = newName;
+        }
+        
+        // Update buttons onclick attributes
+        const editButton = playerElement.querySelector('button:nth-child(1)');
+        if (editButton) {
+            editButton.setAttribute('onclick', `editUnmatchedPlayer('${playerId}', '${newName}', '${newTeam}')`);
+        }
+        
+        const deleteButton = playerElement.querySelector('button:nth-child(2)');
+        if (deleteButton) {
+            deleteButton.setAttribute('onclick', `deleteUnmatchedPlayer('${playerId}', '${newName}')`);
+        }
+        
+        const matchButton = playerElement.querySelector('button:nth-child(3)');
+        if (matchButton) {
+            matchButton.setAttribute('onclick', `matchPlayer('${playerId}', '${newName}', '${newTeam}')`);
+        }
+    }
+    
+    // Update unmatchedPlayers array for suggestions
+    const playerIndex = unmatchedPlayers.findIndex(p => p.id === playerId);
+    if (playerIndex !== -1) {
+        unmatchedPlayers[playerIndex].name = newName;
+        unmatchedPlayers[playerIndex].team = newTeam;
+        console.log(`Updated player in array at index ${playerIndex}`);
+    } else {
+        // Add to array if not found
+        unmatchedPlayers.push({
+            id: playerId,
+            name: newName,
+            team: newTeam,
+            source: 'unmatched',
+            occurrence_count: occurrenceCount
+        });
+        console.log(`Added player to array, total count: ${unmatchedPlayers.length}`);
+    }
+}
+
+// Helper function to remove unmatched player from UI
+function removeUnmatchedPlayerFromUI(playerId) {
+    console.log(`Removing unmatched player from UI: ${playerId}`);
+    
+    // Find the player element
+    const playerElement = document.querySelector(`.unmatched-player[data-player-id="${playerId}"]`);
+    if (!playerElement) {
+        console.error(`Player element not found for ID: ${playerId}`);
+        return;
+    }
+    
+    // Get the parent grid
+    const gridContainer = playerElement.parentElement;
+    const contentContainer = gridContainer?.parentElement;
+    const teamContainer = contentContainer?.parentElement;
+    
+    if (!gridContainer || !contentContainer || !teamContainer) {
+        console.error('Could not find parent containers');
+        return;
+    }
+    
+    const team = playerElement.dataset.team;
+    
+    // Add animation to the player element
+    playerElement.style.animation = 'fadeOut 0.5s ease-out forwards';
+    
+    // Remove after animation completes
+    setTimeout(() => {
+        // Remove the player element
+        playerElement.remove();
+        
+        // Check if this was the last player in the grid
+        if (gridContainer.children.length === 0) {
+            // Create and add empty state
+            const emptyState = document.createElement('div');
+            emptyState.className = 'empty-state text-center py-8 text-gray-500';
+            emptyState.innerHTML = `<p>No unmatched players for ${team.charAt(0).toUpperCase() + team.slice(1)} team</p>`;
+            
+            // Replace grid with empty state
+            gridContainer.remove();
+            contentContainer.appendChild(emptyState);
+            
+            // Add animation to the empty state
+            emptyState.style.animation = 'fadeIn 0.5s ease-out';
+        }
+        
+        // Remove player from unmatchedPlayers array
+        const playerIndex = unmatchedPlayers.findIndex(p => p.id === playerId);
+        if (playerIndex !== -1) {
+            console.log(`Removing player from array at index ${playerIndex}`);
+            unmatchedPlayers.splice(playerIndex, 1);
+        }
+    }, 500); // Match the animation duration
+}
+
+// Helper function to show status messages
+function showStatusMessage(type, message) {
+    const selector = type === "success" ? ".save-success" : ".save-error";
+    const element = document.querySelector(selector);
+    
+    if (type === "error") {
+        element.querySelector(".error-message").textContent = message;
+    }
+    
+    element.classList.remove('hidden');
+    element.classList.add('flex');
+    setTimeout(() => {
+        element.classList.add('hidden');
+        element.classList.remove('flex');
+    }, 3000);
+}
+
+// Add this function to update the occurrence count badge
+function updateUnmatchedPlayerOccurrence(playerId, newCount) {
+    console.log(`Updating occurrence count for player ${playerId} to ${newCount}`);
+    
+    // Find the player element
+    const playerElement = document.querySelector(`.unmatched-player[data-player-id="${playerId}"]`);
+    if (!playerElement) {
+        console.error(`Player element not found for ID: ${playerId}`);
+        return;
+    }
+    
+    // Update data attribute
+    playerElement.dataset.occurrenceCount = newCount;
+    
+    // Find the badge or create one if needed
+    const playerNameContainer = playerElement.querySelector('.flex.items-center');
+    let occurrenceBadge = playerNameContainer.querySelector('.ml-2.px-2.py-0.5.rounded-full');
+    
+    if (newCount > 1) {
+        if (occurrenceBadge) {
+            // Update existing badge with animation
+            occurrenceBadge.style.animation = 'none';
+            occurrenceBadge.offsetHeight; // Trigger reflow
+            occurrenceBadge.textContent = `×${newCount}`;
+            occurrenceBadge.style.animation = 'pulse 0.5s ease-in-out';
+        } else {
+            // Create new badge with animation
+            occurrenceBadge = document.createElement('span');
+            occurrenceBadge.className = 'ml-2 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800';
+            occurrenceBadge.textContent = `×${newCount}`;
+            occurrenceBadge.style.animation = 'fadeIn 0.5s ease-out';
+            playerNameContainer.appendChild(occurrenceBadge);
+        }
+    } else if (occurrenceBadge) {
+        // Remove badge if count is 1
+        occurrenceBadge.style.animation = 'fadeOut 0.5s ease-out forwards';
+        setTimeout(() => {
+            occurrenceBadge.remove();
+        }, 500);
+    }
+    
+    // Also update in the unmatchedPlayers array for suggestions
+    const playerIndex = unmatchedPlayers.findIndex(p => p.id === playerId);
+    if (playerIndex !== -1) {
+        unmatchedPlayers[playerIndex].occurrence_count = newCount;
+        console.log(`Updated player occurrence count in array at index ${playerIndex}`);
+    } else {
+        console.warn(`Player not found in unmatchedPlayers array: ${playerId}`);
+    }
+    
+    // Briefly highlight the player element
+    playerElement.style.backgroundColor = '#f0f9ff'; // Light blue background
+    setTimeout(() => {
+        playerElement.style.backgroundColor = ''; // Back to default
+        playerElement.style.transition = 'background-color 1s ease-out';
+    }, 1000);
+}
+
+/* Add this function to show toast notifications */
+function showToast(message, type = 'info') {
+    // Create toast container if it doesn't exist
+    let toastContainer = document.getElementById('toast-container');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.id = 'toast-container';
+        toastContainer.className = 'fixed bottom-4 right-4 z-50 flex flex-col gap-3';
+        document.body.appendChild(toastContainer);
+    }
+    
+    // Create toast element
+    const toast = document.createElement('div');
+    
+    // Set classes based on type
+    let typeClasses = '';
+    let icon = '';
+    
+    switch (type) {
+        case 'success':
+            typeClasses = 'bg-green-50 border-green-200 text-green-800';
+            icon = '<i class="fas fa-check-circle text-green-500 mr-2"></i>';
+            break;
+        case 'error':
+            typeClasses = 'bg-red-50 border-red-200 text-red-800';
+            icon = '<i class="fas fa-exclamation-circle text-red-500 mr-2"></i>';
+            break;
+        case 'warning':
+            typeClasses = 'bg-yellow-50 border-yellow-200 text-yellow-800';
+            icon = '<i class="fas fa-exclamation-triangle text-yellow-500 mr-2"></i>';
+            break;
+        default:
+            typeClasses = 'bg-blue-50 border-blue-200 text-blue-800';
+            icon = '<i class="fas fa-info-circle text-blue-500 mr-2"></i>';
+    }
+    
+    // Set toast classes
+    toast.className = `py-3 px-4 rounded-lg shadow-lg border ${typeClasses} flex items-center justify-between min-w-[250px] max-w-md`;
+    toast.style.animation = 'fadeIn 0.3s ease-out';
+    
+    // Set toast content
+    toast.innerHTML = `
+        <div class="flex items-center">
+            ${icon}
+            <span>${message}</span>
+        </div>
+        <button class="ml-4 text-gray-500 hover:text-gray-700 focus:outline-none">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+    
+    // Add close button functionality
+    const closeButton = toast.querySelector('button');
+    closeButton.addEventListener('click', () => {
+        toast.style.animation = 'fadeOut 0.3s ease-out forwards';
+        setTimeout(() => {
+            toast.remove();
+        }, 300);
+    });
+    
+    // Add to container
+    toastContainer.appendChild(toast);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        if (toast.parentElement) {
+            toast.style.animation = 'fadeOut 0.3s ease-out forwards';
+            setTimeout(() => {
+                if (toast.parentElement) {
+                    toast.remove();
+                }
+            }, 300);
+        }
+    }, 5000);
+}
+
+// Function to match an unmatched player with a registered player
+function matchPlayer(unmatchedId, unmatchedName, unmatchedTeam) {
+    console.log(`Matching unmatched player: ${unmatchedName} (${unmatchedId}), Team: ${unmatchedTeam}`);
+    
+    // Show the match player modal with animation
+    const modal = document.getElementById('matchPlayerModal');
+    modal.classList.remove('hidden');
+    
+    // Add entrance animation
+    const modalContent = modal.querySelector('.modal-content');
+    modalContent.style.animation = 'none';
+    modalContent.offsetHeight; // Trigger reflow
+    modalContent.style.animation = 'scaleIn 0.3s ease-out forwards';
+    
+    // Set the unmatched player details
+    document.getElementById('match-unmatched-id').value = unmatchedId;
+    document.getElementById('match-unmatched-name').value = unmatchedName;
+    document.getElementById('match-unmatched-team').value = unmatchedTeam;
+    
+    // Update the modal title to include the player name
+    document.getElementById('matchPlayerModalTitle').textContent = `Match Player: ${unmatchedName}`;
+    
+    // Update the modal description
+    document.getElementById('matchPlayerModalDescription').textContent = 
+        `Select a registered player to match with "${unmatchedName}" (${unmatchedTeam} team)`;
+    
+    // Highlight the unmatched player name with animation
+    const nameDisplay = document.getElementById('unmatched-player-name-display');
+    nameDisplay.textContent = unmatchedName;
+    nameDisplay.style.animation = 'none';
+    nameDisplay.offsetHeight; // Trigger reflow
+    nameDisplay.style.animation = 'pulse 1s ease-in-out';
+    
+    // Set the team badge
+    const teamBadge = document.getElementById('unmatched-player-team-badge');
+    teamBadge.className = `team-badge ${unmatchedTeam}`;
+    teamBadge.textContent = unmatchedTeam.charAt(0).toUpperCase() + unmatchedTeam.slice(1);
+    
+    // Focus on the search input
+    setTimeout(() => {
+        document.getElementById('match-player-search').focus();
+    }, 300);
+    
+    // Clear any previous selections
+    const playerList = document.getElementById('registered-players-list');
+    playerList.querySelectorAll('.player-item.selected').forEach(item => {
+        item.classList.remove('selected');
+    });
+    document.getElementById('match-registered-id').value = '';
+}
+
+// Add event listener for the unmatched player form submission
+document.getElementById('unmatchedPlayerForm').addEventListener('submit', function(event) {
+    event.preventDefault();
+    
+    const playerId = document.getElementById('unmatched-player-id').value;
+    const playerName = document.getElementById('unmatched-player-name').value.trim();
+    const playerTeam = document.getElementById('unmatched-player-team').value;
+    
+    if (!playerName) {
+        showToast('Please enter a player name', 'warning');
+        return;
+    }
+    
+    // Show loading state
+    const submitBtn = document.querySelector('#unmatchedPlayerForm button[type="submit"]');
+    const originalBtnText = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Saving...';
+    
+    // Determine if this is a new player or an edit
+    const isEdit = playerId !== '';
+    
+    // Prepare the request data
+    const requestData = {
+        name: playerName,
+        team: playerTeam
+    };
+    
+    // Add player ID if editing
+    if (isEdit) {
+        requestData.player_id = playerId;
+    }
+    
+    // Send request to add or update player
+    fetch(`/api/unmatched_player/${isEdit ? 'update' : 'add'}/{{ match_id }}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify(requestData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Close the modal with animation
+            const modal = document.getElementById('unmatchedPlayerModal');
+            const modalContent = modal.querySelector('.glass-morphism');
+            modalContent.style.animation = 'scaleOut 0.3s ease-in forwards';
+            
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                document.body.classList.remove('overflow-hidden');
+                
+                // Reset form
+                document.getElementById('unmatchedPlayerForm').reset();
+                document.getElementById('unmatched-player-id').value = '';
+                
+                // Reset button
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnText;
+                
+                if (isEdit) {
+                    // Update existing player in UI
+                    updateUnmatchedPlayerInUI(data.player_id, playerName, playerTeam);
+                    showToast('Player updated successfully', 'success');
+                } else {
+                    // Add new player to UI
+                    addUnmatchedPlayerToUI(data.player_id, playerName, playerTeam, data.occurrence_count || 1);
+                    showToast('Player added successfully', 'success');
+                }
+            }, 300);
+        } else {
+            // Show error
+            showToast(`Error: ${data.error}`, 'error');
+            
+            // Reset button
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalBtnText;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('An error occurred while processing your request', 'error');
+        
+        // Reset button
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalBtnText;
+    });
+});
+
+// Add event listeners for modal close buttons
+document.addEventListener('DOMContentLoaded', function() {
+    // Setup close buttons for all modals
+    const modals = document.querySelectorAll('.modal');
+    modals.forEach(modal => {
+        const closeButtons = modal.querySelectorAll('.close-modal, .cancel-button');
+        closeButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const modalContent = modal.querySelector('.glass-morphism');
+                modalContent.style.animation = 'scaleOut 0.3s ease-in forwards';
+                
+                setTimeout(() => {
+                    modal.classList.add('hidden');
+                    document.body.classList.remove('overflow-hidden');
+                }, 300);
+            });
+        });
+    });
+    
+    // Close modal when clicking outside
+    modals.forEach(modal => {
+        modal.addEventListener('click', function(event) {
+            if (event.target === modal) {
+                const modalContent = modal.querySelector('.glass-morphism');
+                modalContent.style.animation = 'scaleOut 0.3s ease-in forwards';
+                
+                setTimeout(() => {
+                    modal.classList.add('hidden');
+                    document.body.classList.remove('overflow-hidden');
+                }, 300);
+            }
+        });
+    });
+    
+    // Close modal on escape key
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            const visibleModal = document.querySelector('.modal:not(.hidden)');
+            if (visibleModal) {
+                const modalContent = visibleModal.querySelector('.glass-morphism');
+                modalContent.style.animation = 'scaleOut 0.3s ease-in forwards';
+                
+                setTimeout(() => {
+                    visibleModal.classList.add('hidden');
+                    document.body.classList.remove('overflow-hidden');
+                }, 300);
+            }
+        }
+    });
+});
+
+// Add animation to the "Add Player" buttons
+document.addEventListener('DOMContentLoaded', function() {
+    // Setup hover animations for add player buttons
+    const addButtons = document.querySelectorAll('.add-unmatched-player-btn');
+    addButtons.forEach(button => {
+        button.addEventListener('mouseover', function() {
+            const icon = button.querySelector('i');
+            if (icon) {
+                icon.style.transition = 'transform 0.3s ease';
+                icon.style.transform = 'scale(1.2) rotate(90deg)';
+            }
+        });
+        
+        button.addEventListener('mouseout', function() {
+            const icon = button.querySelector('i');
+            if (icon) {
+                icon.style.transform = 'scale(1) rotate(0deg)';
+            }
+        });
+        
+        // Set up team selection when button is clicked
+        button.addEventListener('click', function() {
+            // Get the team from the button's data attribute
+            const team = button.dataset.team;
+            
+            // Set the team in the dropdown
+            const teamSelect = document.getElementById('playerTeam');
+            if (teamSelect) {
+                for (let i = 0; i < teamSelect.options.length; i++) {
+                    if (teamSelect.options[i].value === team) {
+                        teamSelect.selectedIndex = i;
+                        break;
+                    }
+                }
+            }
+            
+            // Clear form values and warnings
+            document.getElementById('playerName').value = '';
+            document.getElementById('playerWarning').classList.add('hidden');
+            
+            // Modal opening will be handled by the initModals function
+        });
+    });
+    
+    // Add event listener for the closeConfirmModal button
+    const closeConfirmModalBtn = document.getElementById('closeConfirmModal');
+    if (closeConfirmModalBtn) {
+        closeConfirmModalBtn.addEventListener('click', function() {
+            const confirmModal = document.getElementById('confirmModal');
+            if (confirmModal) {
+                const modalContent = confirmModal.querySelector('.glass-morphism');
+                modalContent.style.animation = 'scaleOut 0.3s ease-in forwards';
+                
+                setTimeout(() => {
+                    confirmModal.classList.add('hidden');
+                    document.body.classList.remove('overflow-hidden');
+                }, 300);
+            }
+        });
+    }
+    
+    // Initialize close-modal buttons for unmatchedPlayerModal
+    document.querySelectorAll('#unmatchedPlayerModal .close-modal').forEach(button => {
+        button.addEventListener('click', function() {
+            const modal = document.getElementById('unmatchedPlayerModal');
+            if (modal) {
+                const modalContent = modal.querySelector('.glass-morphism');
+                modalContent.style.animation = 'scaleOut 0.3s ease-in forwards';
+                
+                setTimeout(() => {
+                    modal.classList.add('hidden');
+                    document.body.classList.remove('overflow-hidden');
+                }, 300);
+            }
+        });
+    });
+});
+</script>
+{% endblock %} 

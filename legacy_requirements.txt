@@ -1,0 +1,10 @@
+flask==2.3.3
+python-dotenv==1.0.0
+supabase==1.0.3
+opencv-python==4.8.0.76
+easyocr==1.7.1
+werkzeug==2.3.7
+openpyxl==3.1.2
+pillow==10.0.0
+flask-session==0.5.0
+apscheduler==3.10.1 
