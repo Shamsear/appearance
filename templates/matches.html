@@ -2,6 +2,15 @@
 
 {% block title %}Matches - Football Player Tracker{% endblock %}
 
+{% block head %}
+<style>
+    html, body {
+        width: 100%;
+        overflow-x: hidden;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <style>
     /* Vision OS inspired additional styling for matches page */
@@ -35,12 +44,45 @@
         box-shadow: 0 8px 16px rgba(0, 0, 0, 0.04), 
                     0 4px 8px rgba(0, 0, 0, 0.02);
     }
+    
+    /* Mobile responsive adjustments */
+    @media (max-width: 640px) {
+        .mobile-scroll {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            max-width: 100vw;
+            margin-left: -1rem;
+            margin-right: -1rem;
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+        
+        .mobile-table-container {
+            min-width: 640px;
+            width: max-content;
+            max-width: none;
+        }
+        
+        .mobile-hidden {
+            display: none;
+        }
+        
+        .mobile-compact-text {
+            font-size: 0.875rem;
+        }
+        
+        .mobile-compact-padding {
+            padding-left: 0.5rem;
+            padding-right: 0.5rem;
+        }
+    }
 </style>
 
 <div class="mb-8 animate-fadeIn">
-    <div class="glass-morphism rounded-2xl p-6 mb-6 shadow-vision">
+    <div class="glass-morphism rounded-2xl p-4 sm:p-6 mb-6 shadow-vision">
         <div class="flex flex-col md:flex-row md:items-center md:justify-between">
-            <h1 class="text-3xl md:text-4xl font-bold text-gray-800 mb-4 md:mb-0">
+            <h1 class="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 mb-4 md:mb-0">
                 <span class="text-primary-600">Matches</span> Directory
             </h1>
             
@@ -62,14 +104,16 @@
     </div>
     
     <!-- Filters and sorting controls -->
-    <div class="glass-morphism rounded-2xl p-6 mb-6 shadow-sm">
+    <div class="glass-morphism rounded-2xl p-4 sm:p-6 mb-6 shadow-sm">
         <h5 class="flex items-center text-gray-800 font-semibold mb-4">
             <i class="fas fa-filter text-primary-600 mr-2"></i> Filter Matches
         </h5>
         
-        <div class="flex flex-wrap gap-2 mb-4 pb-2 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent" id="matchDayFilter">
-            <button class="px-4 py-2.5 rounded-xl text-sm font-medium bg-primary-600 text-white transition-all duration-200 hover-lift shadow-sm active" data-match-day="all">All Match Days</button>
-            <!-- Match day buttons will be generated here -->
+        <div class="mobile-scroll">
+            <div class="flex flex-wrap gap-2 mb-4 pb-2 min-w-max" id="matchDayFilter">
+                <button class="px-4 py-2.5 rounded-xl text-sm font-medium bg-primary-600 text-white transition-all duration-200 hover-lift shadow-sm active" data-match-day="all">All Match Days</button>
+                <!-- Match day buttons will be generated here -->
+            </div>
         </div>
         
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -95,11 +139,11 @@
     
     {% if matches %}
         <!-- Card view (mobile-first) -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="card-view">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6" id="card-view">
             {% for match in matches %}
             <div class="glass-card rounded-2xl shadow-sm transition-all duration-300 hover:-translate-y-1 hover:scale-[1.02] active:scale-[0.98] overflow-hidden animate-fadeIn" data-match-day="{{ match.match_day }}" data-teams="{{ match.home_team.name if match.home_team else 'Unknown' }} {{ match.away_team.name if match.away_team else 'Unknown' }}" data-date="{{ match.date }}" style="animation-delay: {{ loop.index * 50 }}ms;">
-                <div class="px-6 py-5 border-b border-gray-100/60">
-                    <div class="text-lg font-semibold text-gray-800 mb-2 sm:mb-0">
+                <div class="px-4 sm:px-6 py-4 sm:py-5 border-b border-gray-100/60">
+                    <div class="text-base sm:text-lg font-semibold text-gray-800 mb-2 sm:mb-0">
                         {% if match.home_team %}{{ match.home_team.name }}{% else %}Unknown Team{% endif %}
                         <span class="text-gray-500 mx-2">vs</span>
                         {% if match.away_team %}{{ match.away_team.name }}{% else %}Unknown Team{% endif %}
@@ -108,8 +152,8 @@
                         <i class="fas fa-calendar-day mr-1.5"></i> {{ match.match_day }}
                     </div>
                 </div>
-                <div class="p-6">
-                    <div class="grid grid-cols-2 gap-4 mb-5">
+                <div class="p-4 sm:p-6">
+                    <div class="grid grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-5">
                         <div class="bg-white/70 rounded-xl p-3 text-center backdrop-blur-sm shadow-sm">
                             <div class="text-xs text-gray-500 mb-1.5">Date</div>
                             <div class="text-base font-medium text-gray-800">{{ match.date }}</div>
@@ -134,12 +178,12 @@
                         {% endif %}
                     </div>
                 </div>
-                <div class="px-5 py-4 border-t border-gray-100/60 flex gap-3">
-                    <a href="{{ url_for('match_details', match_id=match.id) }}" class="flex-1 inline-flex items-center justify-center px-4 py-2.5 bg-white/90 text-gray-700 font-medium rounded-xl border border-gray-200/70 hover:bg-gray-50/90 transition-all duration-200 hover-lift">
-                        <i class="fas fa-eye mr-2"></i> View
+                <div class="px-4 sm:px-5 py-3 sm:py-4 border-t border-gray-100/60 flex gap-2 sm:gap-3">
+                    <a href="{{ url_for('match_details', match_id=match.id) }}" class="flex-1 inline-flex items-center justify-center px-3 sm:px-4 py-2 sm:py-2.5 bg-white/90 text-gray-700 font-medium rounded-xl border border-gray-200/70 hover:bg-gray-50/90 transition-all duration-200 hover-lift">
+                        <i class="fas fa-eye mr-1 sm:mr-2"></i> View
                     </a>
-                    <a href="{{ url_for('edit_match_appearances', match_id=match.id) }}" class="flex-1 inline-flex items-center justify-center px-4 py-2.5 bg-primary-50/90 text-primary-700 font-medium rounded-xl border border-primary-200/60 hover:bg-primary-100/90 transition-all duration-200 hover-lift">
-                        <i class="fas fa-edit mr-2"></i> Edit
+                    <a href="{{ url_for('edit_match_appearances', match_id=match.id) }}" class="flex-1 inline-flex items-center justify-center px-3 sm:px-4 py-2 sm:py-2.5 bg-primary-50/90 text-primary-700 font-medium rounded-xl border border-primary-200/60 hover:bg-primary-100/90 transition-all duration-200 hover-lift">
+                        <i class="fas fa-edit mr-1 sm:mr-2"></i> Edit
                     </a>
                 </div>
             </div>
@@ -148,75 +192,77 @@
         
         <!-- Table view (for larger screens) -->
         <div class="hidden glass-morphism rounded-2xl shadow-sm overflow-hidden animate-fadeIn" id="table-view">
-            <div class="overflow-x-auto">
-                <table class="w-full">
-                    <thead>
-                        <tr class="border-b border-gray-100/60">
-                            <th class="px-6 py-4 text-left text-gray-700 font-semibold bg-white/30 backdrop-blur-sm">Teams</th>
-                            <th class="px-6 py-4 text-left text-gray-700 font-semibold bg-white/30 backdrop-blur-sm">Match Day</th>
-                            <th class="px-6 py-4 text-left text-gray-700 font-semibold bg-white/30 backdrop-blur-sm">Date</th>
-                            <th class="px-6 py-4 text-left text-gray-700 font-semibold bg-white/30 backdrop-blur-sm">Players</th>
-                            <th class="px-6 py-4 text-left text-gray-700 font-semibold bg-white/30 backdrop-blur-sm">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for match in matches %}
-                        <tr class="border-t border-gray-100/60 hover:bg-white/40 transition-all duration-200" data-match-day="{{ match.match_day }}" data-teams="{{ match.home_team.name if match.home_team else 'Unknown' }} {{ match.away_team.name if match.away_team else 'Unknown' }}" data-date="{{ match.date }}">
-                            <td class="px-6 py-4 font-medium text-gray-800">
-                                {% if match.home_team %}{{ match.home_team.name }}{% else %}Unknown Team{% endif %}
-                                <span class="text-gray-500 mx-1">vs</span>
-                                {% if match.away_team %}{{ match.away_team.name }}{% else %}Unknown Team{% endif %}
-                            </td>
-                            <td class="px-6 py-4">
-                                <div class="inline-flex items-center px-3 py-1.5 bg-primary-50/90 text-primary-700 text-sm font-medium rounded-lg">
-                                    <i class="fas fa-calendar-day mr-1.5"></i> {{ match.match_day }}
-                                </div>
-                            </td>
-                            <td class="px-6 py-4 text-gray-600">{{ match.date }}</td>
-                            <td class="px-6 py-4">
-                                {% if match.home_appearances + match.away_appearances > 0 %}
-                                <div class="inline-flex items-center px-3 py-1.5 bg-green-50/90 text-green-700 text-sm font-medium rounded-lg">
-                                    <i class="fas fa-user-check mr-1.5"></i> {{ match.home_appearances + match.away_appearances }}
-                                </div>
-                                {% endif %}
-                                
-                                {% if match.home_unmatched + match.away_unmatched > 0 %}
-                                <div class="inline-flex items-center px-3 py-1.5 bg-amber-50/90 text-amber-700 text-sm font-medium rounded-lg ml-2">
-                                    <i class="fas fa-question-circle mr-1.5"></i> {{ match.home_unmatched + match.away_unmatched }}
-                                </div>
-                                {% endif %}
-                            </td>
-                            <td class="px-6 py-4 space-x-2">
-                                <a href="{{ url_for('match_details', match_id=match.id) }}" class="inline-flex items-center px-3 py-1.5 bg-white/90 text-gray-700 font-medium text-sm rounded-lg border border-gray-200/70 hover:bg-gray-50/90 transition-all duration-200 hover-lift">
-                                    <i class="fas fa-eye mr-1.5"></i> View
-                                </a>
-                                <a href="{{ url_for('edit_match_appearances', match_id=match.id) }}" class="inline-flex items-center px-3 py-1.5 bg-primary-50/90 text-primary-700 font-medium text-sm rounded-lg border border-primary-200/60 hover:bg-primary-100/90 transition-all duration-200 hover-lift">
-                                    <i class="fas fa-edit mr-1.5"></i> Edit
-                                </a>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+            <div class="mobile-scroll">
+                <div class="mobile-table-container pb-1">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="border-b border-gray-100/60">
+                                <th class="px-3 sm:px-6 py-3 sm:py-4 text-left text-gray-700 font-semibold bg-white/30 backdrop-blur-sm">Teams</th>
+                                <th class="px-3 sm:px-6 py-3 sm:py-4 text-left text-gray-700 font-semibold bg-white/30 backdrop-blur-sm">Match Day</th>
+                                <th class="px-3 sm:px-6 py-3 sm:py-4 text-left text-gray-700 font-semibold bg-white/30 backdrop-blur-sm">Date</th>
+                                <th class="px-3 sm:px-6 py-3 sm:py-4 text-left text-gray-700 font-semibold bg-white/30 backdrop-blur-sm">Players</th>
+                                <th class="px-3 sm:px-6 py-3 sm:py-4 text-left text-gray-700 font-semibold bg-white/30 backdrop-blur-sm">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for match in matches %}
+                            <tr class="border-t border-gray-100/60 hover:bg-white/40 transition-all duration-200" data-match-day="{{ match.match_day }}" data-teams="{{ match.home_team.name if match.home_team else 'Unknown' }} {{ match.away_team.name if match.away_team else 'Unknown' }}" data-date="{{ match.date }}">
+                                <td class="px-3 sm:px-6 py-3 sm:py-4 font-medium text-gray-800 mobile-compact-text">
+                                    {% if match.home_team %}{{ match.home_team.name }}{% else %}Unknown Team{% endif %}
+                                    <span class="text-gray-500 mx-1">vs</span>
+                                    {% if match.away_team %}{{ match.away_team.name }}{% else %}Unknown Team{% endif %}
+                                </td>
+                                <td class="px-3 sm:px-6 py-3 sm:py-4 mobile-compact-text">
+                                    <div class="inline-flex items-center px-2 sm:px-3 py-1 sm:py-1.5 bg-primary-50/90 text-primary-700 text-sm font-medium rounded-lg">
+                                        <i class="fas fa-calendar-day mr-1 sm:mr-1.5"></i> {{ match.match_day }}
+                                    </div>
+                                </td>
+                                <td class="px-3 sm:px-6 py-3 sm:py-4 text-gray-600 mobile-compact-text">{{ match.date }}</td>
+                                <td class="px-3 sm:px-6 py-3 sm:py-4 mobile-compact-text">
+                                    {% if match.home_appearances + match.away_appearances > 0 %}
+                                    <div class="inline-flex items-center px-2 sm:px-3 py-1 sm:py-1.5 bg-green-50/90 text-green-700 text-sm font-medium rounded-lg">
+                                        <i class="fas fa-user-check mr-1 sm:mr-1.5"></i> {{ match.home_appearances + match.away_appearances }}
+                                    </div>
+                                    {% endif %}
+                                    
+                                    {% if match.home_unmatched + match.away_unmatched > 0 %}
+                                    <div class="inline-flex items-center px-2 sm:px-3 py-1 sm:py-1.5 bg-amber-50/90 text-amber-700 text-sm font-medium rounded-lg ml-2">
+                                        <i class="fas fa-question-circle mr-1 sm:mr-1.5"></i> {{ match.home_unmatched + match.away_unmatched }}
+                                    </div>
+                                    {% endif %}
+                                </td>
+                                <td class="px-3 sm:px-6 py-3 sm:py-4 space-x-1 sm:space-x-2">
+                                    <a href="{{ url_for('match_details', match_id=match.id) }}" class="inline-flex items-center px-2 sm:px-3 py-1 sm:py-1.5 bg-white/90 text-gray-700 font-medium text-sm rounded-lg border border-gray-200/70 hover:bg-gray-50/90 transition-all duration-200 hover-lift">
+                                        <i class="fas fa-eye mr-1 sm:mr-1.5"></i> View
+                                    </a>
+                                    <a href="{{ url_for('edit_match_appearances', match_id=match.id) }}" class="inline-flex items-center px-2 sm:px-3 py-1 sm:py-1.5 bg-primary-50/90 text-primary-700 font-medium text-sm rounded-lg border border-primary-200/60 hover:bg-primary-100/90 transition-all duration-200 hover-lift">
+                                        <i class="fas fa-edit mr-1 sm:mr-1.5"></i> Edit
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     {% else %}
-        <div class="glass-morphism rounded-2xl shadow-sm p-8 flex flex-col items-center justify-center animate-fadeIn">
-            <div class="w-24 h-24 bg-primary-50/90 rounded-full flex items-center justify-center text-primary-500 mb-6 shadow-sm animate-pulse">
-                <i class="fas fa-futbol text-4xl"></i>
+        <div class="glass-morphism rounded-2xl shadow-sm p-6 sm:p-8 flex flex-col items-center justify-center animate-fadeIn">
+            <div class="w-20 h-20 sm:w-24 sm:h-24 bg-primary-50/90 rounded-full flex items-center justify-center text-primary-500 mb-6 shadow-sm animate-pulse">
+                <i class="fas fa-futbol text-3xl sm:text-4xl"></i>
             </div>
-            <h2 class="text-2xl font-semibold text-gray-800 mb-3">No Matches Found</h2>
-            <p class="text-gray-600 text-center max-w-md mb-8">Create a match day to start tracking player appearances.</p>
-            <button class="inline-flex items-center justify-center px-5 py-3 bg-primary-600 text-white font-medium rounded-xl shadow-sm hover:bg-primary-700 transition-all duration-200 hover-lift focus:outline-none focus:ring-2 focus:ring-primary-500/50" data-modal="createMatchDayModal">
-                <i class="fas fa-plus mr-3"></i> Create Match Day
+            <h2 class="text-xl sm:text-2xl font-semibold text-gray-800 mb-3">No Matches Found</h2>
+            <p class="text-gray-600 text-center max-w-md mb-6 sm:mb-8">Create a match day to start tracking player appearances.</p>
+            <button class="inline-flex items-center justify-center px-4 sm:px-5 py-2.5 sm:py-3 bg-primary-600 text-white font-medium rounded-xl shadow-sm hover:bg-primary-700 transition-all duration-200 hover-lift focus:outline-none focus:ring-2 focus:ring-primary-500/50" data-modal="createMatchDayModal">
+                <i class="fas fa-plus mr-2 sm:mr-3"></i> Create Match Day
             </button>
         </div>
     {% endif %}
     
     {% if matches %}
-    <div class="flex justify-center mt-8">
-        <button class="inline-flex items-center justify-center px-5 py-3 bg-primary-600 text-white font-medium rounded-xl shadow-sm hover:bg-primary-700 transition-all duration-200 hover-lift focus:outline-none focus:ring-2 focus:ring-primary-500/50" data-modal="createMatchDayModal">
-            <i class="fas fa-plus mr-3"></i> Create New Match
+    <div class="flex justify-center mt-6 sm:mt-8">
+        <button class="inline-flex items-center justify-center px-4 sm:px-5 py-2.5 sm:py-3 bg-primary-600 text-white font-medium rounded-xl shadow-sm hover:bg-primary-700 transition-all duration-200 hover-lift focus:outline-none focus:ring-2 focus:ring-primary-500/50" data-modal="createMatchDayModal">
+            <i class="fas fa-plus mr-2 sm:mr-3"></i> Create New Match
         </button>
     </div>
     {% endif %}
@@ -288,6 +334,9 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Check for mobile device
+    const isMobile = window.innerWidth < 640;
+    
     // Set default date to today for the match date input
     const today = new Date();
     const year = today.getFullYear();
@@ -394,6 +443,14 @@ document.addEventListener('DOMContentLoaded', function() {
             // Force reflow
             void viewElement.offsetWidth;
             viewElement.classList.remove('opacity-0');
+            
+            // Scroll to top if on mobile
+            if (isMobile) {
+                window.scrollTo({
+                    top: 0,
+                    behavior: 'smooth'
+                });
+            }
         }, 150);
     }
     
@@ -401,17 +458,20 @@ document.addEventListener('DOMContentLoaded', function() {
     // Check localStorage for user preference
     const savedView = localStorage.getItem('preferredMatchView');
     
-    if (savedView === 'card') {
+    // On mobile, default to card view if no preference is saved
+    if (savedView === 'card' || (isMobile && !savedView)) {
         setActiveButton(cardViewBtn, true);
         setActiveButton(tableViewBtn, false);
         cardView.classList.remove('hidden');
         tableView.classList.add('hidden');
+        localStorage.setItem('preferredMatchView', 'card');
     } else {
         // Default to table view
         setActiveButton(tableViewBtn, true);
         setActiveButton(cardViewBtn, false);
         tableView.classList.remove('hidden');
         cardView.classList.add('hidden');
+        localStorage.setItem('preferredMatchView', 'table');
     }
     
     // Toggle between views
@@ -689,6 +749,26 @@ document.addEventListener('DOMContentLoaded', function() {
     
     document.querySelectorAll('#table-view tbody tr').forEach(row => {
         row.style.transition = 'all 0.2s ease, opacity 0.2s ease';
+    });
+    
+    // Handle window resize
+    window.addEventListener('resize', function() {
+        const currentIsMobile = window.innerWidth < 640;
+        
+        // If device type changed, update the UI accordingly
+        if (currentIsMobile !== isMobile && currentIsMobile) {
+            // If switching to mobile, prefer card view
+            if (!cardView.classList.contains('hidden')) {
+                // Already in card view, no change needed
+            } else {
+                // Switch to card view
+                setActiveButton(cardViewBtn, true);
+                setActiveButton(tableViewBtn, false);
+                tableView.classList.add('hidden');
+                cardView.classList.remove('hidden');
+                localStorage.setItem('preferredMatchView', 'card');
+            }
+        }
     });
 });
 </script>

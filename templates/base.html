@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>{% block title %}Football Player Tracker{% endblock %}</title>
     <!-- Stylesheets -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
@@ -61,6 +61,13 @@
             --success-color: #34D399;
             --warning-color: #F59E0B;
             --error-color: #EF4444;
+        }
+
+        /* Global layout fixes */
+        html, body {
+            width: 100%;
+            overflow-x: hidden;
+            position: relative;
         }
 
         /* Glass morphism effects */
@@ -150,7 +157,7 @@
     </style>
     {% block head %}{% endblock %}
 </head>
-<body class="min-h-screen flex flex-col bg-gradient-to-br from-white to-gray-50 vision-ui bg-pattern">
+<body class="min-h-screen flex flex-col bg-gradient-to-br from-white to-gray-50 vision-ui bg-pattern pb-16 sm:pb-0">
     <!-- Navigation -->
     <header class="glass-morphism sticky top-0 z-30 px-4 py-3 shadow-vision border-b border-gray-100/60">
         <div class="flex justify-between items-center max-w-7xl mx-auto">
@@ -164,11 +171,6 @@
                     </span>
                 </a>
             </div>
-            
-            <!-- Mobile menu button -->
-            <button id="menu-button" class="sm:hidden flex hover-lift items-center p-2 rounded-xl bg-gray-50/90 text-gray-600 hover:text-primary-600 hover:bg-gray-100/80 transition duration-150">
-                <i class="fas fa-bars text-xl"></i>
-            </button>
             
             <!-- Desktop Navigation -->
             <nav class="hidden sm:flex sm:space-x-4 sm:items-center">
@@ -186,36 +188,52 @@
                 </a>
             </nav>
         </div>
-        
-        <!-- Mobile Navigation (Hidden by default) -->
-        <div id="mobile-menu" class="glass-morphism sm:hidden fixed inset-0 bg-white/80 backdrop-blur-xl z-40 transform transition-transform duration-300 ease-in-out translate-x-full">
-            <div class="flex justify-end p-5">
-                <button id="close-menu" class="hover-lift p-2 rounded-full bg-gray-50/90 text-gray-600 hover:text-primary-600 transition duration-150">
-                    <i class="fas fa-times text-xl"></i>
-                </button>
-            </div>
-            <nav class="flex flex-col space-y-4 p-5">
-                <a href="{{ url_for('index') }}" class="py-3 px-4 rounded-xl font-medium hover-lift flex items-center {% if request.path == url_for('index') %}bg-primary-50/80 text-primary-700{% else %}text-gray-600 hover:text-primary-600 hover:bg-gray-50/80{% endif %} transition duration-150">
-                    <i class="fas fa-home mr-3 w-6 text-center"></i> Home
-                </a>
-                <a href="{{ url_for('players') }}" class="py-3 px-4 rounded-xl font-medium hover-lift flex items-center {% if request.path == url_for('players') %}bg-primary-50/80 text-primary-700{% else %}text-gray-600 hover:text-primary-600 hover:bg-gray-50/80{% endif %} transition duration-150">
-                    <i class="fas fa-user mr-3 w-6 text-center"></i> Players
-                </a>
-                <a href="{{ url_for('matches') }}" class="py-3 px-4 rounded-xl font-medium hover-lift flex items-center {% if request.path == url_for('matches') %}bg-primary-50/80 text-primary-700{% else %}text-gray-600 hover:text-primary-600 hover:bg-gray-50/80{% endif %} transition duration-150">
-                    <i class="fas fa-calendar mr-3 w-6 text-center"></i> Matches
-                </a>
-                <a href="{{ url_for('form_demo') }}" class="py-3 px-4 rounded-xl font-medium hover-lift flex items-center {% if request.path == url_for('form_demo') %}bg-primary-50/80 text-primary-700{% else %}text-gray-600 hover:text-primary-600 hover:bg-gray-50/80{% endif %} transition duration-150">
-                    <i class="fas fa-palette mr-3 w-6 text-center"></i> UI Demo
-                </a>
-                <a href="{{ url_for('export_teams_excel') }}" class="mt-4 flex items-center justify-center py-3 px-4 rounded-xl font-medium hover-lift text-white bg-gradient-to-br from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 transition duration-150 shadow-sm hover:shadow">
-                    <i class="fas fa-file-export mr-3"></i> Export Teams
-                </a>
-            </nav>
-        </div>
     </header>
 
+    <!-- Mobile Bottom Navigation Bar -->
+    <div class="sm:hidden fixed bottom-0 left-0 right-0 z-40 glass-morphism border-t border-gray-100/60 shadow-vision-lg">
+        <div class="flex justify-around items-center">
+            <a href="{{ url_for('index') }}" class="flex flex-col items-center py-3 px-2 flex-1 relative">
+                <div class="{% if request.path == url_for('index') %}text-primary-600{% else %}text-gray-600{% endif %} flex flex-col items-center">
+                    <i class="fas fa-home text-lg mb-1"></i>
+                    <span class="text-xs font-medium">Home</span>
+                </div>
+                {% if request.path == url_for('index') %}
+                <span class="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-8 h-1 bg-primary-500 rounded-t-full"></span>
+                {% endif %}
+            </a>
+            <a href="{{ url_for('players') }}" class="flex flex-col items-center py-3 px-2 flex-1 relative">
+                <div class="{% if request.path == url_for('players') %}text-primary-600{% else %}text-gray-600{% endif %} flex flex-col items-center">
+                    <i class="fas fa-user text-lg mb-1"></i>
+                    <span class="text-xs font-medium">Players</span>
+                </div>
+                {% if request.path == url_for('players') %}
+                <span class="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-8 h-1 bg-primary-500 rounded-t-full"></span>
+                {% endif %}
+            </a>
+            <a href="{{ url_for('matches') }}" class="flex flex-col items-center py-3 px-2 flex-1 relative">
+                <div class="{% if request.path == url_for('matches') %}text-primary-600{% else %}text-gray-600{% endif %} flex flex-col items-center">
+                    <i class="fas fa-calendar text-lg mb-1"></i>
+                    <span class="text-xs font-medium">Matches</span>
+                </div>
+                {% if request.path == url_for('matches') %}
+                <span class="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-8 h-1 bg-primary-500 rounded-t-full"></span>
+                {% endif %}
+            </a>
+            <a href="{{ url_for('export_teams_excel') }}" class="flex flex-col items-center py-3 px-2 flex-1 relative">
+                <div class="{% if request.path == url_for('export_teams_excel') %}text-primary-600{% else %}text-gray-600{% endif %} flex flex-col items-center">
+                    <i class="fas fa-file-export text-lg mb-1"></i>
+                    <span class="text-xs font-medium">Export</span>
+                </div>
+                {% if request.path == url_for('export_teams_excel') %}
+                <span class="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-8 h-1 bg-primary-500 rounded-t-full"></span>
+                {% endif %}
+            </a>
+        </div>
+    </div>
+
     <!-- Main Content -->
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-12">
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 sm:pt-24 pb-8 sm:pb-12 w-full overflow-hidden">
         <!-- Flash Messages -->
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
@@ -276,34 +294,9 @@
 
     <!-- Scripts -->
     <script>
-        // Mobile menu toggle functionality
-        document.addEventListener('DOMContentLoaded', function() {
-            const menuButton = document.getElementById('menu-button');
-            const closeButton = document.getElementById('close-menu');
-            const mobileMenu = document.getElementById('mobile-menu');
-            
-            menuButton.addEventListener('click', function() {
-                mobileMenu.classList.remove('translate-x-full');
-                mobileMenu.classList.add('translate-x-0');
-                document.body.classList.add('overflow-hidden');
-            });
-            
-            closeButton.addEventListener('click', function() {
-                mobileMenu.classList.remove('translate-x-0');
-                mobileMenu.classList.add('translate-x-full');
-                document.body.classList.remove('overflow-hidden');
-            });
-
-            // Hide mobile menu on resize to desktop
-            window.addEventListener('resize', function() {
-                if (window.innerWidth >= 640) { // sm breakpoint
-                    mobileMenu.classList.remove('translate-x-0');
-                    mobileMenu.classList.add('translate-x-full');
-                    document.body.classList.remove('overflow-hidden');
-                }
-            });
-        });
-
+        // Set current year in footer
+        document.getElementById('current-year').textContent = new Date().getFullYear();
+        
         // Add smooth fade-in animation to content
         document.addEventListener('DOMContentLoaded', function() {
             const mainContent = document.querySelector('main');
@@ -311,9 +304,6 @@
                 mainContent.classList.add('animate-fadeIn');
             }
         });
-
-        // Set current year in footer
-        document.getElementById('current-year').textContent = new Date().getFullYear();
     </script>
     {% block scripts %}{% endblock %}
 </body>

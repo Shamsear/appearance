@@ -614,6 +614,72 @@
     </div>
     <div class="font-medium text-gray-800">Saving changes...</div>
 </div>
+
+<!-- Confirmation Modal -->
+<div id="confirmModal" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-gray-900 bg-opacity-50 backdrop-blur-sm transition-opacity"></div>
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="glass-morphism rounded-2xl shadow-vision border border-gray-100/80 overflow-hidden w-full max-w-md mx-auto transform transition-all duration-300 scale-95 opacity-0 modal-content">
+            <div class="px-6 py-5 border-b border-gray-100/60 flex items-center justify-between">
+                <h5 class="text-xl font-semibold text-gray-800">Confirm Action</h5>
+                <button type="button" class="p-2 rounded-lg text-gray-400 hover:text-gray-500 hover:bg-gray-100/50 transition-all duration-200" id="closeConfirmModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <div class="flex items-start mb-4">
+                    <div class="w-10 h-10 bg-yellow-50 rounded-full flex items-center justify-center text-yellow-500 flex-shrink-0 mr-4">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <p id="confirmMessage" class="text-gray-700"></p>
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-gray-100/60 flex justify-end gap-3">
+                <button id="cancelBtn" class="px-5 py-2.5 bg-white/90 text-gray-700 rounded-xl border border-gray-200/70 font-medium text-sm transition-all duration-200 hover:bg-gray-50/90 hover-lift">Cancel</button>
+                <button id="confirmBtn" class="px-5 py-2.5 bg-red-600 text-white rounded-xl font-medium text-sm transition-all duration-200 hover:bg-red-700 hover-lift">Remove</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Unmatched Player Modal -->
+<div id="unmatchedPlayerModal" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-gray-900 bg-opacity-50 backdrop-blur-sm transition-opacity"></div>
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="glass-morphism rounded-2xl shadow-vision border border-gray-100/80 overflow-hidden w-full max-w-md mx-auto transform transition-all duration-300 scale-95 opacity-0 modal-content">
+            <div class="px-6 py-5 border-b border-gray-100/60 flex items-center justify-between">
+                <h5 class="text-xl font-semibold text-gray-800" id="unmatchedPlayerModalTitle">Edit Unmatched Player</h5>
+                <button type="button" class="p-2 rounded-lg text-gray-400 hover:text-gray-500 hover:bg-gray-100/50 transition-all duration-200 close-modal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="unmatchedPlayerForm" class="add-player-form">
+                <div class="p-6">
+                    <input type="hidden" id="unmatched-player-id" name="player_id">
+                    <div class="mb-5">
+                        <label for="unmatched-player-name" class="block text-sm font-medium text-gray-700 mb-2">Player Name</label>
+                        <input type="text" class="w-full py-3 px-4 rounded-xl border border-gray-200/70 bg-white/80 focus:outline-none focus:ring-2 focus:ring-primary-100 focus:border-primary-500 transition-all duration-200" id="unmatched-player-name" name="name" required>
+                    </div>
+                    <div class="mb-2">
+                        <label for="unmatched-player-team" class="block text-sm font-medium text-gray-700 mb-2">Team</label>
+                        <select class="w-full py-3 px-4 rounded-xl border border-gray-200/70 bg-white/80 focus:outline-none focus:ring-2 focus:ring-primary-100 focus:border-primary-500 transition-all duration-200" id="unmatched-player-team" name="team" required>
+                            <option value="home">{{ home_team_name }} (Home)</option>
+                            <option value="away">{{ away_team_name }} (Away)</option>
+                        </select>
+                    </div>
+                    <div class="mt-4 flex items-center">
+                        <span id="unmatched-player-name-display" class="font-medium text-gray-800"></span>
+                        <span id="unmatched-player-team-badge" class="team-badge ml-2"></span>
+                    </div>
+                </div>
+                <div class="px-6 py-4 border-t border-gray-100/60 flex justify-end gap-3">
+                    <button type="button" class="px-5 py-2.5 bg-white/90 text-gray-700 rounded-xl border border-gray-200/70 font-medium text-sm transition-all duration-200 hover:bg-gray-50/90 hover-lift close-modal">Cancel</button>
+                    <button type="submit" class="px-5 py-2.5 bg-primary-600 text-white rounded-xl font-medium text-sm transition-all duration-200 hover:bg-primary-700 hover-lift">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -1591,6 +1657,116 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+    
+    // Initialize close-modal buttons for unmatchedPlayerModal
+    document.querySelectorAll('#unmatchedPlayerModal .close-modal').forEach(button => {
+        button.addEventListener('click', function() {
+            const modal = document.getElementById('unmatchedPlayerModal');
+            if (modal) {
+                const modalContent = modal.querySelector('.glass-morphism');
+                modalContent.style.animation = 'scaleOut 0.3s ease-in forwards';
+                
+                setTimeout(() => {
+                    modal.classList.add('hidden');
+                    document.body.classList.remove('overflow-hidden');
+                }, 300);
+            }
+        });
+    });
+    
+    // Add event listener for unmatchedPlayerForm submission
+    const unmatchedPlayerForm = document.getElementById('unmatchedPlayerForm');
+    if (unmatchedPlayerForm) {
+        unmatchedPlayerForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+            
+            const playerId = document.getElementById('unmatched-player-id').value;
+            const playerName = document.getElementById('unmatched-player-name').value.trim();
+            const playerTeam = document.getElementById('unmatched-player-team').value;
+            
+            if (!playerName) {
+                showToast('Please enter a player name', 'warning');
+                return;
+            }
+            
+            // Show loading state
+            const submitBtn = unmatchedPlayerForm.querySelector('button[type="submit"]');
+            const originalBtnText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Saving...';
+            
+            // Determine if this is a new player or an edit
+            const isEdit = playerId !== '';
+            
+            // Prepare the request data
+            const requestData = {
+                name: playerName,
+                team: playerTeam
+            };
+            
+            // Add player ID if editing
+            if (isEdit) {
+                requestData.player_id = playerId;
+            }
+            
+            // Send request to add or update player
+            fetch(`/api/unmatched_player/${isEdit ? 'update' : 'add'}/{{ match_id }}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify(requestData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Close the modal with animation
+                    const modal = document.getElementById('unmatchedPlayerModal');
+                    const modalContent = modal.querySelector('.glass-morphism');
+                    modalContent.style.animation = 'scaleOut 0.3s ease-in forwards';
+                    
+                    setTimeout(() => {
+                        modal.classList.add('hidden');
+                        document.body.classList.remove('overflow-hidden');
+                        
+                        // Reset form
+                        document.getElementById('unmatchedPlayerForm').reset();
+                        document.getElementById('unmatched-player-id').value = '';
+                        
+                        // Reset button
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = originalBtnText;
+                        
+                        if (isEdit) {
+                            // Update existing player in UI
+                            updateUnmatchedPlayerInUI(data.player_id, playerName, playerTeam);
+                            showToast('Player updated successfully', 'success');
+                        } else {
+                            // Add new player to UI
+                            addUnmatchedPlayerToUI(data.player_id, playerName, playerTeam, data.occurrence_count || 1);
+                            showToast('Player added successfully', 'success');
+                        }
+                    }, 300);
+                } else {
+                    // Show error
+                    showToast(`Error: ${data.error}`, 'error');
+                    
+                    // Reset button
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalBtnText;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('An error occurred while processing your request', 'error');
+                
+                // Reset button
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnText;
+            });
+        });
+    }
 });
 
 // Function to edit an unmatched player
@@ -1613,12 +1789,19 @@ function editUnmatchedPlayer(playerId, playerName, playerTeam) {
         }
     }
     
+    // Update display elements
+    document.getElementById('unmatched-player-name-display').textContent = playerName;
+    const teamBadge = document.getElementById('unmatched-player-team-badge');
+    teamBadge.className = `team-badge ${playerTeam}`;
+    teamBadge.textContent = playerTeam.charAt(0).toUpperCase() + playerTeam.slice(1);
+    
     // Show the modal with animation
     const modal = document.getElementById('unmatchedPlayerModal');
     modal.classList.remove('hidden');
+    document.body.classList.add('overflow-hidden');
     
     // Add entrance animation
-    const modalContent = modal.querySelector('.modal-content');
+    const modalContent = modal.querySelector('.glass-morphism');
     modalContent.style.animation = 'none';
     modalContent.offsetHeight; // Trigger reflow
     modalContent.style.animation = 'scaleIn 0.3s ease-out forwards';
@@ -1636,9 +1819,10 @@ function deleteUnmatchedPlayer(playerId, playerName) {
     // Show confirmation with animation
     const confirmModal = document.getElementById('confirmModal');
     confirmModal.classList.remove('hidden');
+    document.body.classList.add('overflow-hidden');
     
     // Add entrance animation
-    const modalContent = confirmModal.querySelector('.modal-content');
+    const modalContent = confirmModal.querySelector('.glass-morphism');
     modalContent.style.animation = 'none';
     modalContent.offsetHeight; // Trigger reflow
     modalContent.style.animation = 'scaleIn 0.3s ease-out forwards';
@@ -1654,6 +1838,7 @@ function deleteUnmatchedPlayer(playerId, playerName) {
         
         setTimeout(() => {
             confirmModal.classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
             
             // Send request to decrement or remove player
             fetch(`/api/decrement_unmatched_player/${playerId}`, {
@@ -1698,6 +1883,7 @@ function deleteUnmatchedPlayer(playerId, playerName) {
         
         setTimeout(() => {
             confirmModal.classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
         }, 300);
     };
 }
@@ -2251,11 +2437,12 @@ document.getElementById('unmatchedPlayerForm').addEventListener('submit', functi
         if (data.success) {
             // Close the modal with animation
             const modal = document.getElementById('unmatchedPlayerModal');
-            const modalContent = modal.querySelector('.modal-content');
+            const modalContent = modal.querySelector('.glass-morphism');
             modalContent.style.animation = 'scaleOut 0.3s ease-in forwards';
             
             setTimeout(() => {
                 modal.classList.add('hidden');
+                document.body.classList.remove('overflow-hidden');
                 
                 // Reset form
                 document.getElementById('unmatchedPlayerForm').reset();
@@ -2302,11 +2489,12 @@ document.addEventListener('DOMContentLoaded', function() {
         const closeButtons = modal.querySelectorAll('.close-modal, .cancel-button');
         closeButtons.forEach(button => {
             button.addEventListener('click', function() {
-                const modalContent = modal.querySelector('.modal-content');
+                const modalContent = modal.querySelector('.glass-morphism');
                 modalContent.style.animation = 'scaleOut 0.3s ease-in forwards';
                 
                 setTimeout(() => {
                     modal.classList.add('hidden');
+                    document.body.classList.remove('overflow-hidden');
                 }, 300);
             });
         });
@@ -2316,11 +2504,12 @@ document.addEventListener('DOMContentLoaded', function() {
     modals.forEach(modal => {
         modal.addEventListener('click', function(event) {
             if (event.target === modal) {
-                const modalContent = modal.querySelector('.modal-content');
+                const modalContent = modal.querySelector('.glass-morphism');
                 modalContent.style.animation = 'scaleOut 0.3s ease-in forwards';
                 
                 setTimeout(() => {
                     modal.classList.add('hidden');
+                    document.body.classList.remove('overflow-hidden');
                 }, 300);
             }
         });
@@ -2331,11 +2520,12 @@ document.addEventListener('DOMContentLoaded', function() {
         if (event.key === 'Escape') {
             const visibleModal = document.querySelector('.modal:not(.hidden)');
             if (visibleModal) {
-                const modalContent = visibleModal.querySelector('.modal-content');
+                const modalContent = visibleModal.querySelector('.glass-morphism');
                 modalContent.style.animation = 'scaleOut 0.3s ease-in forwards';
                 
                 setTimeout(() => {
                     visibleModal.classList.add('hidden');
+                    document.body.classList.remove('overflow-hidden');
                 }, 300);
             }
         }
@@ -2383,6 +2573,39 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('playerWarning').classList.add('hidden');
             
             // Modal opening will be handled by the initModals function
+        });
+    });
+    
+    // Add event listener for the closeConfirmModal button
+    const closeConfirmModalBtn = document.getElementById('closeConfirmModal');
+    if (closeConfirmModalBtn) {
+        closeConfirmModalBtn.addEventListener('click', function() {
+            const confirmModal = document.getElementById('confirmModal');
+            if (confirmModal) {
+                const modalContent = confirmModal.querySelector('.glass-morphism');
+                modalContent.style.animation = 'scaleOut 0.3s ease-in forwards';
+                
+                setTimeout(() => {
+                    confirmModal.classList.add('hidden');
+                    document.body.classList.remove('overflow-hidden');
+                }, 300);
+            }
+        });
+    }
+    
+    // Initialize close-modal buttons for unmatchedPlayerModal
+    document.querySelectorAll('#unmatchedPlayerModal .close-modal').forEach(button => {
+        button.addEventListener('click', function() {
+            const modal = document.getElementById('unmatchedPlayerModal');
+            if (modal) {
+                const modalContent = modal.querySelector('.glass-morphism');
+                modalContent.style.animation = 'scaleOut 0.3s ease-in forwards';
+                
+                setTimeout(() => {
+                    modal.classList.add('hidden');
+                    document.body.classList.remove('overflow-hidden');
+                }, 300);
+            }
         });
     });
 });
